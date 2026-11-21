@@ -17,3 +17,9 @@ node_modules/
 .env.*
 *.pem
 *.key
+
+# Database and test artifacts
+*.sqlite
+*.sqlite*
+data/
+

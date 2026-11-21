@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  mock-crm:
+    image: node:20-alpine
+    container_name: demo-mock-crm
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./mock-crm:/app
+      - crm-storage:/data
+    environment:
+      - PORT=3001
+      - DB_PATH=/data/crm.sqlite
+    ports:
+      - "3001:3001"
+    command: node server.js
+    networks:
+      - lead-automation-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  n8n:
+    image: n8nio/n8n:2.46.6
+    container_name: demo-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_HOST=localhost
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=UTC
+      - N8N_RUNNERS_ENABLED=true
+    volumes:
+      - n8n-storage:/home/node/.n8n
+      - ./workflow.json:/workflows/workflow.json:ro
+      - ./sla-monitor-workflow.json:/workflows/sla-monitor-workflow.json:ro
+    depends_on:
+      mock-crm:
+        condition: service_healthy
+    networks:
+      - lead-automation-net
+
+volumes:
+  crm-storage:
+  n8n-storage:
+
+networks:
+  lead-automation-net:
+    driver: bridge

@@ -1,0 +1,92 @@
+{
+  "processedBatchTimestamp": "2026-11-21T20:50:00.000Z",
+  "summary": {
+    "totalIngested": 4,
+    "qualified": 3,
+    "quarantined": 1,
+    "alertsDispatched": 1,
+    "breakdown": {
+      "P1": 1,
+      "P2": 1,
+      "P3": 1
+    }
+  },
+  "results": [
+    {
+      "leadId": "LEAD-B937C091",
+      "status": "CREATED",
+      "priority": "P1",
+      "tier": "Enterprise Tier",
+      "contact": {
+        "fullName": "Elena Rostova",
+        "email": "elena.rostova@globalhypercloud.com",
+        "company": "Global HyperCloud Inc"
+      },
+      "qualification": {
+        "budget": 85000,
+        "slaTargetHours": 1,
+        "slaDeadline": "2026-11-21T21:00:00.000Z",
+        "routingQueue": "enterprise_exec_sales",
+        "suggestedAction": "URGENT: Direct assignment to Senior Enterprise Account Director"
+      },
+      "alert": {
+        "channel": "executive_slack",
+        "status": "DISPATCHED"
+      }
+    },
+    {
+      "leadId": "LEAD-482CA911",
+      "status": "CREATED",
+      "priority": "P2",
+      "tier": "Mid-Market Tier",
+      "contact": {
+        "fullName": "Tariq Mansour",
+        "email": "tariq.m@pulseflows.ai",
+        "company": "PulseFlows AI"
+      },
+      "qualification": {
+        "budget": 22000,
+        "slaTargetHours": 4,
+        "slaDeadline": "2026-11-22T00:15:00.000Z",
+        "routingQueue": "midmarket_sales",
+        "suggestedAction": "Route to dedicated Commercial Account Executive"
+      },
+      "alert": null
+    },
+    {
+      "leadId": "LEAD-19A2DF40",
+      "status": "CREATED",
+      "priority": "P3",
+      "tier": "Standard SMB",
+      "contact": {
+        "fullName": "Liam O'Connor",
+        "email": "liam@craftsupplyco.ie",
+        "company": "Craft Supply Co"
+      },
+      "qualification": {
+        "budget": 4500,
+        "slaTargetHours": 24,
+        "slaDeadline": "2026-11-22T20:30:00.000Z",
+        "routingQueue": "marketing_nurture",
+        "suggestedAction": "Enroll in self-serve automated onboarding sequence"
+      },
+      "alert": null
+    },
+    {
+      "leadId": "LEAD-UNPROCESSED",
+      "status": "REJECTED",
+      "priority": "DISQUALIFIED",
+      "validationPassed": false,
+      "validationErrors": [
+        "Invalid or missing email address",
+        "Full name is required (minimum 2 characters)",
+        "Company name is mandatory",
+        "Budget must be a non-negative number"
+      ],
+      "quarantine": {
+        "routingQueue": "dead_letter_queue",
+        "action": "Logged to DLQ for security and spam review"
+      }
+    }
+  ]
+}

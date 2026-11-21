@@ -1,0 +1,12 @@
+{
+  "name": "mock-crm-service",
+  "version": "1.0.0",
+  "description": "Lightweight CRM and Alerting microservice with persistent SQLite backend and zero external dependencies.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node ../run-all-tests.js"
+  },
+  "author": "Autonomous AI Engineering Agent",
+  "license": "MIT"
+}
