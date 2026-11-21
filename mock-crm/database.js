@@ -2,6 +2,9 @@
  * Persistent SQLite Database Layer for Demo CRM
  * Uses Node.js native DatabaseSync (node:sqlite) - zero third-party dependencies.
  * Requires Node.js >= v22.5.0 (e.g. node:22-alpine)
+ * 
+ * Hardened with WAL journaling, foreign keys, transaction bounds, 
+ * and escalation idempotency.
  */
 
 const [major, minor] = process.versions.node.split('.').map(Number);
@@ -21,6 +24,14 @@ class CrmDatabase {
       fs.mkdirSync(dir, { recursive: true });
     }
     this.db = new DatabaseSync(this.dbPath);
+    
+    // Configure SQLite runtime pragmas for durability and concurrent reads
+    this.db.exec(`
+      PRAGMA journal_mode = WAL;
+      PRAGMA foreign_keys = ON;
+      PRAGMA busy_timeout = 5000;
+    `);
+
     this.initSchema();
   }
 
@@ -62,7 +73,7 @@ class CrmDatabase {
         priority TEXT NOT NULL,
         channel TEXT NOT NULL,
         message TEXT NOT NULL,
-        status TEXT DEFAULT 'DISPATCHED',
+        status TEXT DEFAULT 'LOGGED_LOCALLY',
         dispatched_at TEXT NOT NULL
       );
 
@@ -74,6 +85,10 @@ class CrmDatabase {
         retry_count INTEGER DEFAULT 0,
         failed_at TEXT NOT NULL
       );
+
+      CREATE INDEX IF NOT EXISTS idx_leads_idempotency ON leads(idempotency_key);
+      CREATE INDEX IF NOT EXISTS idx_leads_sla ON leads(sla_deadline, status);
+      CREATE INDEX IF NOT EXISTS idx_alerts_lead_priority ON alerts(lead_id, priority);
     `);
   }
 
@@ -108,7 +123,7 @@ class CrmDatabase {
       lead.inquiryType || 'General',
       lead.source || 'Inbound Webhook',
       lead.priority,
-      lead.tier,
+      lead.tier || 'Standard Tier',
       lead.slaTargetHours || 24,
       lead.slaDeadline || null,
       lead.status || 'QUALIFIED',
@@ -150,6 +165,29 @@ class CrmDatabase {
 
   insertAlert(alert) {
     const now = new Date().toISOString();
+
+    // Escalation Idempotency: Prevent duplicate alert storms for the same lead and priority
+    if (alert.priority === 'SLA_BREACH') {
+      const existingAlertStmt = this.db.prepare(`
+        SELECT * FROM alerts WHERE lead_id = ? AND priority = 'SLA_BREACH' LIMIT 1
+      `);
+      const existing = existingAlertStmt.get(alert.leadId);
+      if (existing) {
+        return {
+          status: 'ALREADY_ESCALATED',
+          leadId: alert.leadId,
+          dispatchedAt: existing.dispatched_at,
+          message: 'Escalation alert already recorded for this lead'
+        };
+      }
+
+      // Mark the lead status as ESCALATED in the leads table
+      const updateStmt = this.db.prepare(`
+        UPDATE leads SET status = 'ESCALATED', updated_at = ? WHERE lead_id = ?
+      `);
+      updateStmt.run(now, alert.leadId);
+    }
+
     const stmt = this.db.prepare(`
       INSERT INTO alerts (lead_id, priority, channel, message, status, dispatched_at)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -166,12 +204,18 @@ class CrmDatabase {
 
   insertDeadLetter(payload, errorReason) {
     const now = new Date().toISOString();
+    const leadId = (payload && typeof payload === 'object') ? (payload.leadId || null) : null;
+    
+    // Sanitize payload to prevent storage bloat or recursion
+    const rawPayload = JSON.stringify(payload);
+    const sanitizedPayload = rawPayload.length > 32768 ? rawPayload.substring(0, 32768) + '...[TRUNCATED]' : rawPayload;
+
     const stmt = this.db.prepare(`
       INSERT INTO dead_letter_queue (lead_id, raw_payload, error_reason, failed_at)
       VALUES (?, ?, ?, ?)
     `);
-    stmt.run(payload.leadId || null, JSON.stringify(payload), errorReason, now);
-    this.logAudit(payload.leadId || null, 'DEAD_LETTER_QUEUED', JSON.stringify({ error: errorReason }));
+    stmt.run(leadId, sanitizedPayload, errorReason, now);
+    this.logAudit(leadId, 'DEAD_LETTER_QUEUED', JSON.stringify({ error: errorReason }));
     return { status: 'QUEUED_IN_DLQ', failedAt: now };
   }
 
@@ -182,6 +226,7 @@ class CrmDatabase {
 
   getOverdueLeads() {
     const now = new Date().toISOString();
+    // Exclude leads that are already ESCALATED or CLOSED to guarantee alert idempotency
     const stmt = this.db.prepare(`
       SELECT * FROM leads 
       WHERE sla_deadline IS NOT NULL 

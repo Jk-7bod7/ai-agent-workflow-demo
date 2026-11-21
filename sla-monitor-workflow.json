@@ -35,7 +35,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer test-crm-sec-token-2026"
+              "value": "={{ 'Bearer ' + $env.CRM_API_KEY }}"
             }
           ]
         },
@@ -94,7 +94,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer test-crm-sec-token-2026"
+              "value": "={{ 'Bearer ' + $env.CRM_API_KEY }}"
             },
             {
               "name": "Content-Type",

@@ -1,14 +1,23 @@
 /**
  * Standalone Mock CRM REST API Server
  * Built with native Node.js HTTP module and persistent SQLite backend.
+ * 
+ * Hardened for streaming payload limits (413), media type validation (415),
+ * sanitized error responses, test-mode restricted chaos injection,
+ * and least-privilege CORS.
  */
 
 const http = require('node:http');
 const path = require('path');
+const crypto = require('node:crypto');
 const CrmDatabase = require('./database');
 
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3001', 10);
 const CRM_API_KEY = process.env.CRM_API_KEY || 'test-crm-sec-token-2026';
+const MAX_BODY_SIZE = 256 * 1024; // 256 KB max payload size
+const ENABLE_TEST_CHAOS = process.env.ENABLE_TEST_CHAOS === 'true' || process.env.NODE_ENV === 'test';
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '';
+
 let db = null;
 
 function getDb() {
@@ -28,28 +37,76 @@ let chaosState = {
 
 function sendJson(res, statusCode, data) {
   const body = JSON.stringify(data, null, 2);
-  res.writeHead(statusCode, {
+  const headers = {
     'Content-Type': 'application/json',
     'Content-Length': Buffer.byteLength(body),
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, X-Idempotency-Key, Authorization'
-  });
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY'
+  };
+
+  if (ALLOWED_ORIGIN) {
+    headers['Access-Control-Allow-Origin'] = ALLOWED_ORIGIN;
+    headers['Access-Control-Allow-Headers'] = 'Content-Type, X-Idempotency-Key, Authorization, X-API-Key';
+    headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
+  }
+
+  res.writeHead(statusCode, headers);
   res.end(body);
 }
 
 function parseJsonBody(req) {
   return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
+    // 1. Content-Type verification
+    const contentType = req.headers['content-type'] || '';
+    if (req.method === 'POST' || req.method === 'PUT') {
+      if (!contentType.toLowerCase().startsWith('application/json')) {
+        const err = new Error('Unsupported Media Type: Content-Type must be application/json');
+        err.statusCode = 415;
+        return reject(err);
+      }
+    }
+
+    // 2. Early Content-Length verification
+    const contentLength = parseInt(req.headers['content-length'] || '0', 10);
+    if (contentLength > MAX_BODY_SIZE) {
+      const err = new Error(`Payload Too Large: Content-Length ${contentLength} exceeds maximum limit of ${MAX_BODY_SIZE} bytes`);
+      err.statusCode = 413;
+      return reject(err);
+    }
+
+    // 3. Streaming body accumulator with byte-counter limit
+    let accumulatedBytes = 0;
+    const chunks = [];
+
+    req.on('data', chunk => {
+      accumulatedBytes += chunk.length;
+      if (accumulatedBytes > MAX_BODY_SIZE) {
+        req.destroy();
+        const err = new Error(`Payload Too Large: Stream exceeded limit of ${MAX_BODY_SIZE} bytes`);
+        err.statusCode = 413;
+        return reject(err);
+      }
+      chunks.push(chunk);
+    });
+
     req.on('end', () => {
-      if (!body) return resolve({});
+      if (chunks.length === 0) return resolve({});
+      const rawString = Buffer.concat(chunks).toString('utf8');
+      if (!rawString.trim()) return resolve({});
+
       try {
-        resolve(JSON.parse(body));
-      } catch (err) {
-        reject(new Error('Invalid JSON payload: ' + err.message));
+        const parsed = JSON.parse(rawString);
+        resolve(parsed);
+      } catch (parseErr) {
+        const err = new Error('Malformed JSON payload: Unable to parse request body');
+        err.statusCode = 400;
+        reject(err);
       }
     });
-    req.on('error', reject);
+
+    req.on('error', err => {
+      reject(err);
+    });
   });
 }
 
@@ -60,11 +117,15 @@ const server = http.createServer(async (req, res) => {
 
   // Handle CORS preflight
   if (method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, X-Idempotency-Key, Authorization'
-    });
+    if (ALLOWED_ORIGIN) {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, X-Idempotency-Key, Authorization, X-API-Key'
+      });
+      return res.end();
+    }
+    res.writeHead(403);
     return res.end();
   }
 
@@ -77,14 +138,25 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
-  // Enforce API Key Authentication on all other API endpoints
+  // 2. Enforce API Key Authentication on all other endpoints
   const authHeader = req.headers['authorization'] || '';
   const apiKeyHeader = req.headers['x-api-key'] || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : apiKeyHeader.trim();
 
-  if (token !== CRM_API_KEY) {
+  // Constant-time token comparison to avoid timing side-channels
+  let isAuthorized = false;
+  if (token && typeof token === 'string' && token.length === CRM_API_KEY.length) {
+    try {
+      isAuthorized = crypto.timingSafeEqual(Buffer.from(token), Buffer.from(CRM_API_KEY));
+    } catch (_) {
+      isAuthorized = false;
+    }
+  }
+
+  if (!isAuthorized) {
+    // Never echo back the supplied token or details
     return sendJson(res, 401, {
-      error: 'Unauthorized: Missing or invalid API Key. Provide Authorization: Bearer <token> or X-API-Key: <token>'
+      error: 'Unauthorized: Missing or invalid API Key. Provide valid Authorization: Bearer <token>'
     });
   }
 
@@ -98,17 +170,23 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
-    // 2. Metrics endpoint
+    // 3. Metrics endpoint
     if (pathname === '/api/v1/metrics' && method === 'GET') {
       return sendJson(res, 200, getDb().getMetrics());
     }
 
-    // 3. Create or Deduplicate Lead
+    // 4. Create or Deduplicate Lead
     if (pathname === '/api/v1/leads' && method === 'POST') {
-      const payload = await parseJsonBody(req);
+      let payload;
+      try {
+        payload = await parseJsonBody(req);
+      } catch (err) {
+        return sendJson(res, err.statusCode || 400, { error: err.message });
+      }
+
       const idempotencyKey = req.headers['x-idempotency-key'] || payload.idempotencyKey;
 
-      if (!idempotencyKey) {
+      if (!idempotencyKey || typeof idempotencyKey !== 'string') {
         return sendJson(res, 400, {
           error: 'Missing required header X-Idempotency-Key or body property idempotencyKey'
         });
@@ -139,14 +217,14 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // 4. List Leads
+    // 5. List Leads
     if (pathname === '/api/v1/leads' && method === 'GET') {
       const priority = parsedUrl.searchParams.get('priority');
       const leads = getDb().getAllLeads(priority);
       return sendJson(res, 200, { count: leads.length, leads });
     }
 
-    // 5. Get Single Lead
+    // 6. Get Single Lead
     if (pathname.startsWith('/api/v1/leads/') && method === 'GET') {
       const leadId = pathname.replace('/api/v1/leads/', '');
       const lead = getDb().getLeadById(leadId);
@@ -154,14 +232,21 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { lead });
     }
 
-    // 6. High Priority Alerts
+    // 7. High Priority Alerts
     if (pathname === '/api/v1/alerts' && method === 'POST') {
-      const alert = await parseJsonBody(req);
+      let alert;
+      try {
+        alert = await parseJsonBody(req);
+      } catch (err) {
+        return sendJson(res, err.statusCode || 400, { error: err.message });
+      }
+
       if (!alert.leadId || !alert.priority || !alert.message) {
         return sendJson(res, 400, { error: 'Missing alert fields (leadId, priority, message)' });
       }
       const result = getDb().insertAlert(alert);
-      return sendJson(res, 201, result);
+      const statusCode = result.status === 'ALREADY_ESCALATED' ? 200 : 201;
+      return sendJson(res, statusCode, result);
     }
 
     if (pathname === '/api/v1/alerts' && method === 'GET') {
@@ -169,9 +254,15 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { count: alerts.length, alerts });
     }
 
-    // 7. Dead Letter Queue / Quarantine
+    // 8. Dead Letter Queue / Quarantine
     if (pathname === '/api/v1/dlq' && method === 'POST') {
-      const body = await parseJsonBody(req);
+      let body;
+      try {
+        body = await parseJsonBody(req);
+      } catch (err) {
+        return sendJson(res, err.statusCode || 400, { error: err.message });
+      }
+
       const result = getDb().insertDeadLetter(body.payload || body, body.errorReason || 'Validation Failure');
       return sendJson(res, 201, result);
     }
@@ -181,7 +272,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { count: items.length, items });
     }
 
-    // 8. SLA Status
+    // 9. SLA Status
     if (pathname === '/api/v1/sla/status' && method === 'GET') {
       const overdue = getDb().getOverdueLeads();
       return sendJson(res, 200, {
@@ -191,16 +282,29 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // 9. Audit Logs
+    // 10. Audit Logs
     if (pathname === '/api/v1/audit-logs' && method === 'GET') {
       const leadId = parsedUrl.searchParams.get('leadId');
       const logs = getDb().getAuditLogs(leadId);
       return sendJson(res, 200, { count: logs.length, logs });
     }
 
-    // 10. Chaos Simulator for testing
+    // 11. Chaos Simulator for testing (Least privilege: restricted to explicit test mode)
     if (pathname === '/api/v1/simulate/chaos' && method === 'POST') {
-      const body = await parseJsonBody(req);
+      const isChaosPermitted = process.env.ENABLE_TEST_CHAOS === 'true';
+      if (!isChaosPermitted) {
+        return sendJson(res, 403, {
+          error: 'Forbidden: Chaos simulation endpoint is disabled in non-test mode'
+        });
+      }
+
+      let body;
+      try {
+        body = await parseJsonBody(req);
+      } catch (err) {
+        return sendJson(res, err.statusCode || 400, { error: err.message });
+      }
+
       chaosState.remainingFailures = body.failNextRequests || 0;
       chaosState.statusCode = body.statusCode || 503;
       chaosState.message = body.message || 'Service Temporarily Unavailable (Simulated)';
@@ -213,7 +317,13 @@ const server = http.createServer(async (req, res) => {
     // 404 Route
     sendJson(res, 404, { error: `Endpoint not found: ${method} ${pathname}` });
   } catch (err) {
-    sendJson(res, 500, { error: 'Internal Server Error', details: err.message });
+    // Sanitized 500 response: never leak internal stack traces or database schema details
+    const errorId = crypto.randomUUID();
+    console.error(`[Mock CRM Internal Error ${errorId}]`, err);
+    sendJson(res, 500, {
+      error: 'Internal Server Error',
+      errorId
+    });
   }
 });
 
@@ -227,8 +337,8 @@ function start(port = PORT, dbPath = null) {
   }
   getDb();
   return new Promise(resolve => {
-    server.listen(port, () => {
-      console.log(`[Mock CRM] Server listening on port ${port}`);
+    server.listen(port, '127.0.0.1', () => {
+      console.log(`[Mock CRM] Server listening on 127.0.0.1:${port}`);
       resolve(server);
     });
   });
