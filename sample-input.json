@@ -1,0 +1,46 @@
+[
+  {
+    "leadId": "LEAD-1001",
+    "fullName": "Sarah Jenkins",
+    "email": "sarah.jenkins@cloudenterprise.io",
+    "company": "Apex Cloud Technologies",
+    "companySize": "500+",
+    "budget": 75000,
+    "inquiryType": "Enterprise AI Deployment",
+    "source": "Inbound Demo Request",
+    "submittedAt": "2026-11-21T18:30:00.000Z"
+  },
+  {
+    "leadId": "LEAD-1002",
+    "fullName": "Alex Rivera",
+    "email": "alex.rivera@scaleventures.ai",
+    "company": "Scale Ventures AI",
+    "companySize": "50-250",
+    "budget": 18000,
+    "inquiryType": "AI Workflow Automation",
+    "source": "Webinar Referral",
+    "submittedAt": "2026-11-21T18:45:00.000Z"
+  },
+  {
+    "leadId": "LEAD-1003",
+    "fullName": "Devon Vance",
+    "email": "devon@boutiqueshop.net",
+    "company": "Vance Boutique Retail",
+    "companySize": "1-10",
+    "budget": 3500,
+    "inquiryType": "Basic Integration",
+    "source": "Organic Search",
+    "submittedAt": "2026-11-21T19:00:00.000Z"
+  },
+  {
+    "leadId": "LEAD-1004",
+    "fullName": "Anonymous Prospect",
+    "email": "invalid-email-syntax@",
+    "company": "",
+    "companySize": "Unknown",
+    "budget": -500,
+    "inquiryType": "Unknown Inquiry",
+    "source": "Automated Form Bot",
+    "submittedAt": "2026-11-21T19:15:00.000Z"
+  }
+]
