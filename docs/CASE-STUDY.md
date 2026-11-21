@@ -45,8 +45,8 @@ The system implements a multi-tier, event-driven pipeline:
 | Layer | Technology | Role |
 |---|---|---|
 | **Workflow Engine** | n8n (`v2.46.6`) | Inbound webhook reception, conditional routing, data enrichment, alert triggers. |
-| **Microservice Backend** | Node.js (`v24.22.1` / `v20-alpine`) | REST API for CRM operations, metrics, chaos simulation, and audit logging. |
-| **Storage Engine** | Persistent SQLite (`node:sqlite`) | ACID-compliant storage for leads, audit trails, alerts, and dead letter records. |
+| **Microservice Backend** | Node.js (`v24.22.1` / `v22-alpine`) | REST API for CRM operations, metrics, chaos simulation, and audit logging. |
+| **Storage Engine** | Persistent SQLite (`node:sqlite`) | ACID-compliant storage for leads, audit trails, alerts, and dead letter records. Requires Node.js >= 22.5.0. |
 | **Containerization** | Docker & Docker Compose (`v5.7.0`) | Multi-container isolated environment for reproducible deployment. |
 | **Testing Harness** | Node.js Native Test Framework | Automated unit, integration, chaos/retry, end-to-end, and security scanning. |
 

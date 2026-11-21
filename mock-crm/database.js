@@ -1,7 +1,13 @@
 /**
  * Persistent SQLite Database Layer for Demo CRM
  * Uses Node.js native DatabaseSync (node:sqlite) - zero third-party dependencies.
+ * Requires Node.js >= v22.5.0 (e.g. node:22-alpine)
  */
+
+const [major, minor] = process.versions.node.split('.').map(Number);
+if (major < 22 || (major === 22 && minor < 5)) {
+  throw new Error(`Runtime incompatibility: 'node:sqlite' requires Node.js >= v22.5.0. Current runtime is v${process.versions.node}. Please run on Node 22+ (e.g. node:22-alpine).`);
+}
 
 const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
@@ -148,9 +154,9 @@ class CrmDatabase {
       INSERT INTO alerts (lead_id, priority, channel, message, status, dispatched_at)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
-    stmt.run(alert.leadId, alert.priority, alert.channel || 'executive_slack', alert.message, 'DISPATCHED', now);
-    this.logAudit(alert.leadId, 'ALERT_DISPATCHED', JSON.stringify({ channel: alert.channel, priority: alert.priority }));
-    return { status: 'DISPATCHED', leadId: alert.leadId, dispatchedAt: now };
+    stmt.run(alert.leadId, alert.priority, alert.channel || 'local_alert_registry', alert.message, 'LOGGED_LOCALLY', now);
+    this.logAudit(alert.leadId, 'ALERT_LOGGED_LOCALLY', JSON.stringify({ channel: alert.channel || 'local_alert_registry', priority: alert.priority }));
+    return { status: 'LOGGED_LOCALLY', leadId: alert.leadId, dispatchedAt: now };
   }
 
   getAllAlerts() {

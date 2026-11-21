@@ -146,9 +146,11 @@ Detailed testing and payload guides are available in [docs/DEMO-GUIDE.md](docs/D
 
 ## 🛡️ Security, Privacy & Integrity Notice
 
-- **Zero Credentials in Repository**: The codebase contains no API keys, private tokens, or real user identifiers. Verified by `tests/security/security-scan.test.js`.
-- **Synthetic Data**: All names, domains, and figures are 100% fictional test fixtures.
-- **Controlled Scope**: This project is an engineered demonstration and test harness. It does not fabricate client testimonials or claim production deployment on third-party client networks.
+- **CRM Integration**: Implemented via a dedicated Mock CRM REST API running on **Node.js 22 LTS (`node:22-alpine`)** with persistent SQLite (`node:sqlite`). Requires `Authorization: Bearer <token>` for all endpoints (except `/api/v1/health`).
+- **Webhook Authentication**: Webhook requires `X-Webhook-Secret` header to prevent unauthenticated injection.
+- **Alert Dispatch**: Alerts are recorded in the local CRM alert registry and audit log table (`alerts` table) for notification review. No external Slack API delivery is claimed or performed.
+- **n8n Task Runner**: Configured with `NODE_FUNCTION_ALLOW_BUILTIN=crypto` to permit secure cryptographic hashing within Code nodes.
+- **Data**: All lead records, names, companies, and emails are 100% synthetic test fixtures.
 
 ---
 

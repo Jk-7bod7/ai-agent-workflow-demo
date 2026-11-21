@@ -17,12 +17,15 @@ const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
 if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
 process.env.DB_PATH = TEST_DB;
 
+const AUTH_HEADER = { 'Authorization': 'Bearer test-crm-sec-token-2026' };
+
 async function request(method, path, body = null, headers = {}) {
   const url = `${BASE_URL}${path}`;
   const options = {
     method,
     headers: {
       'Content-Type': 'application/json',
+      ...AUTH_HEADER,
       ...headers
     }
   };
@@ -46,6 +49,11 @@ async function run() {
     assert.strictEqual(health.status, 200);
     assert.strictEqual(health.data.status, 'UP');
     console.log('✓ Test 1 Passed: GET /api/v1/health returns 200 UP');
+
+    // 1b. Verify 401 Unauthorized when missing API key
+    const unauthRes = await fetch(`${BASE_URL}/api/v1/leads`, { method: 'GET' });
+    assert.strictEqual(unauthRes.status, 401, 'Should reject unauthenticated calls with 401');
+    console.log('✓ Test 1b Passed: Endpoints enforce 401 Unauthorized when API key is missing');
 
     // 2. Ingest New Qualified Lead
     const newLeadPayload = {
@@ -94,8 +102,8 @@ async function run() {
     };
     const resAlert = await request('POST', '/api/v1/alerts', alertPayload);
     assert.strictEqual(resAlert.status, 201);
-    assert.strictEqual(resAlert.data.status, 'DISPATCHED');
-    console.log('✓ Test 5 Passed: POST /api/v1/alerts records and dispatches executive alert');
+    assert.strictEqual(resAlert.data.status, 'LOGGED_LOCALLY');
+    console.log('✓ Test 5 Passed: POST /api/v1/alerts records local executive alert');
 
     // 6. Dead Letter Queue Insertion
     const dlqPayload = {

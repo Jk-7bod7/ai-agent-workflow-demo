@@ -134,7 +134,9 @@ sequenceDiagram
   - Action: Automated email onboarding sequence.
 - **SLA Calculation**: `sla_deadline = submittedAt + (slaTargetHours * 3600s)`. Stored in ISO 8601 UTC format.
 
-### 3. Resilience & Failure Handling
-- **Dead Letter Queue (DLQ)**: Quarantines malformed, spam, or rejected leads with exact validation failure reasons for compliance and review.
-- **Bounded Exponential Backoff**: n8n HTTP Request node and client adapters implement bounded retries (3 attempts with exponential backoff: 50ms, 100ms, 200ms) to withstand transient 503 network errors without entering infinite loops.
-- **Tamper-Evident Audit Trail**: Every lifecycle event (`LEAD_CREATED`, `DUPLICATE_INGESTION_ATTEMPT`, `ALERT_DISPATCHED`, `DEAD_LETTER_QUEUED`) is appended to an immutable `audit_logs` table.
+### 4. Authentication & Security Boundaries
+- **Webhook Endpoint**: Requires header `X-Webhook-Secret: lead-webhook-secret-token-2026` to block unauthorized public injections.
+- **CRM REST API**: Protected with Bearer token authentication (`Authorization: Bearer test-crm-sec-token-2026`). Missing or invalid tokens immediately yield `HTTP 401 Unauthorized`.
+- **Runtime Compatibility**: Mock CRM is pinned to **Node.js 22 LTS (`node:22-alpine`)** to guarantee native `node:sqlite` availability.
+- **Task Runner Permissions**: n8n container is configured with `NODE_FUNCTION_ALLOW_BUILTIN=crypto` to permit SHA-256 fingerprinting.
+- **Alert Scope**: High-priority alerts are recorded locally in the database `alerts` table (`local_alert_registry`) for notification review. No external Slack webhook integration is claimed.

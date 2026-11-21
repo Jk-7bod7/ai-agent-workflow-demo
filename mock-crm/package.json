@@ -7,6 +7,9 @@
     "start": "node server.js",
     "test": "node ../run-all-tests.js"
   },
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "author": "Autonomous AI Engineering Agent",
   "license": "MIT"
 }

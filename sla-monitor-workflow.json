@@ -30,6 +30,15 @@
       "parameters": {
         "method": "GET",
         "url": "http://mock-crm:3001/api/v1/sla/status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer test-crm-sec-token-2026"
+            }
+          ]
+        },
         "options": {}
       },
       "id": "node-fetch-sla-status",
@@ -80,13 +89,26 @@
       "parameters": {
         "method": "POST",
         "url": "http://mock-crm:3001/api/v1/alerts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer test-crm-sec-token-2026"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"leadId\": {{ JSON.stringify($json.leadId) }},\n  \"priority\": \"SLA_BREACH\",\n  \"channel\": \"executive_pager\",\n  \"message\": \"⚠️ SLA DEADLINE BREACHED for \" + {{ JSON.stringify($json.fullName) }} + \" (\" + {{ JSON.stringify($json.company) }} + \"). Target SLA was \" + {{ JSON.stringify($json.slaDeadline) }}\n}",
+        "jsonBody": "={\n  \"leadId\": {{ JSON.stringify($json.leadId) }},\n  \"priority\": \"SLA_BREACH\",\n  \"channel\": \"local_alert_registry\",\n  \"message\": \"⚠️ SLA DEADLINE BREACHED for \" + {{ JSON.stringify($json.fullName) }} + \" (\" + {{ JSON.stringify($json.company) }} + \"). Target SLA was \" + {{ JSON.stringify($json.slaDeadline) }}\n}",
         "options": {}
       },
       "id": "node-dispatch-sla-alert",
-      "name": "Dispatch SLA Breach Alert",
+      "name": "Log Internal SLA Breach Alert",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [1160, 100]
@@ -141,7 +163,7 @@
       "main": [
         [
           {
-            "node": "Dispatch SLA Breach Alert",
+            "node": "Log Internal SLA Breach Alert",
             "type": "main",
             "index": 0
           }

@@ -8,6 +8,7 @@ const path = require('path');
 const CrmDatabase = require('./database');
 
 const PORT = process.env.PORT || 3001;
+const CRM_API_KEY = process.env.CRM_API_KEY || 'test-crm-sec-token-2026';
 let db = null;
 
 function getDb() {
@@ -67,6 +68,26 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
+  // 1. Health check (public for docker healthchecks & liveness probes)
+  if (pathname === '/api/v1/health' && method === 'GET') {
+    return sendJson(res, 200, {
+      status: 'UP',
+      service: 'mock-crm-service',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // Enforce API Key Authentication on all other API endpoints
+  const authHeader = req.headers['authorization'] || '';
+  const apiKeyHeader = req.headers['x-api-key'] || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : apiKeyHeader.trim();
+
+  if (token !== CRM_API_KEY) {
+    return sendJson(res, 401, {
+      error: 'Unauthorized: Missing or invalid API Key. Provide Authorization: Bearer <token> or X-API-Key: <token>'
+    });
+  }
+
   // Chaos filter (simulates transient failures for bounded retry verification)
   if (chaosState.remainingFailures > 0 && pathname.startsWith('/api/v1/leads') && method === 'POST') {
     chaosState.remainingFailures--;
@@ -77,15 +98,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
-    // 1. Health check
-    if (pathname === '/api/v1/health' && method === 'GET') {
-      return sendJson(res, 200, {
-        status: 'UP',
-        service: 'mock-crm-service',
-        timestamp: new Date().toISOString()
-      });
-    }
-
     // 2. Metrics endpoint
     if (pathname === '/api/v1/metrics' && method === 'GET') {
       return sendJson(res, 200, getDb().getMetrics());

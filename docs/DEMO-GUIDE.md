@@ -35,6 +35,7 @@ The CRM server starts listening on `http://localhost:3001`.
 ```powershell
 Invoke-RestMethod -Uri "http://localhost:3001/api/v1/leads" -Method POST -Headers @{
   "Content-Type" = "application/json"
+  "Authorization" = "Bearer test-crm-sec-token-2026"
   "X-Idempotency-Key" = "demo-key-1001"
 } -Body '{
   "leadId": "LEAD-DEMO-001",
@@ -54,6 +55,7 @@ Invoke-RestMethod -Uri "http://localhost:3001/api/v1/leads" -Method POST -Header
 ```bash
 curl -X POST http://localhost:3001/api/v1/leads \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer test-crm-sec-token-2026" \
   -H "X-Idempotency-Key: demo-key-1001" \
   -d '{
     "leadId": "LEAD-DEMO-001",
@@ -116,6 +118,7 @@ This spins up:
 ```bash
 curl -X POST http://localhost:5678/webhook/leads \
   -H "Content-Type: application/json" \
+  -H "X-Webhook-Secret: lead-webhook-secret-token-2026" \
   -d @tests/fixtures/enterprise-lead.json
 ```
 
@@ -126,9 +129,10 @@ curl -X POST http://localhost:5678/webhook/leads \
 You can simulate transient network failures against the CRM API:
 
 ```bash
-# Inject 2 transient 503 errors
+# Inject 2 transient 503 errors (requires Authorization header)
 curl -X POST http://localhost:3001/api/v1/simulate/chaos \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer test-crm-sec-token-2026" \
   -d '{"failNextRequests": 2, "statusCode": 503}'
 ```
 Now send a request with retry logic: The first two attempts receive 503, and the third attempt recovers automatically with 201 Created.

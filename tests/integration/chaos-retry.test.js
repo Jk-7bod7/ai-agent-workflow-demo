@@ -14,12 +14,15 @@ const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
 if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
 process.env.DB_PATH = TEST_DB;
 
+const AUTH_HEADER = { 'Authorization': 'Bearer test-crm-sec-token-2026' };
+
 async function request(method, path, body = null, headers = {}) {
   const url = `${BASE_URL}${path}`;
   const options = {
     method,
     headers: {
       'Content-Type': 'application/json',
+      ...AUTH_HEADER,
       ...headers
     }
   };

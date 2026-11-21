@@ -23,6 +23,8 @@ const smbLeadRaw = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'smb-lead.
 const invalidLeadRaw = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'invalid-lead.json'), 'utf8'));
 const duplicateLeadRaw = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'duplicate-lead.json'), 'utf8'));
 
+const AUTH_HEADER = { 'Authorization': 'Bearer test-crm-sec-token-2026' };
+
 async function request(method, path, body = null, headers = {}) {
   const url = `${BASE_URL}${path}`;
   const options = {
@@ -30,6 +32,7 @@ async function request(method, path, body = null, headers = {}) {
     headers: {
       'Content-Type': 'application/json',
       'Connection': 'close',
+      ...AUTH_HEADER,
       ...headers
     }
   };
@@ -117,9 +120,9 @@ async function run() {
     const res1 = await processPipeline(enterpriseLeadRaw);
     assert.strictEqual(res1.statusCode, 201);
     assert.strictEqual(res1.priority, 'P1');
-    assert.ok(res1.alert !== null, 'P1 lead must trigger high-priority alert');
-    assert.strictEqual(res1.alert.status, 'DISPATCHED');
-    console.log('✓ Enterprise Lead processed: Scored P1, CRM created, Alert dispatched.');
+    assert.ok(res1.alert !== null, 'P1 lead must trigger local alert');
+    assert.strictEqual(res1.alert.status, 'LOGGED_LOCALLY');
+    console.log('✓ Enterprise Lead processed: Scored P1, CRM created, Local alert logged.');
 
     // 2. Process Mid-Market Lead -> P2 (No alert)
     console.log('[E2E Step 2] Ingesting Mid-Market Lead...');

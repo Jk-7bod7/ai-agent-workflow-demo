@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   mock-crm:
-    image: node:20-alpine
+    image: node:22-alpine
     container_name: demo-mock-crm
     restart: unless-stopped
     working_dir: /app
@@ -12,23 +12,24 @@ services:
     environment:
       - PORT=3001
       - DB_PATH=/data/crm.sqlite
+      - CRM_API_KEY=test-crm-sec-token-2026
     ports:
-      - "3001:3001"
+      - "${CRM_PORT:-3001}:3001"
     command: node server.js
     networks:
       - lead-automation-net
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/api/v1/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   n8n:
     image: n8nio/n8n:2.46.6
     container_name: demo-n8n
     restart: unless-stopped
     ports:
-      - "5678:5678"
+      - "${N8N_PORT:-5678}:5678"
     environment:
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
@@ -36,6 +37,9 @@ services:
       - WEBHOOK_URL=http://localhost:5678/
       - GENERIC_TIMEZONE=UTC
       - N8N_RUNNERS_ENABLED=true
+      - NODE_FUNCTION_ALLOW_BUILTIN=crypto
+      - CRM_API_KEY=test-crm-sec-token-2026
+      - WEBHOOK_SECRET=lead-webhook-secret-token-2026
     volumes:
       - n8n-storage:/home/node/.n8n
       - ./workflow.json:/workflows/workflow.json:ro
