@@ -1,0 +1,128 @@
+{
+  "summary": {
+    "totalProcessed": 4,
+    "qualifiedCount": 3,
+    "disqualifiedCount": 1,
+    "priorityBreakdown": {
+      "P1": 1,
+      "P2": 1,
+      "P3": 1
+    }
+  },
+  "qualifiedLeads": [
+    {
+      "leadId": "LEAD-1001",
+      "contact": {
+        "fullName": "Sarah Jenkins",
+        "email": "sarah.jenkins@cloudenterprise.io",
+        "company": "Apex Cloud Technologies",
+        "companySize": "500+"
+      },
+      "qualification": {
+        "status": "QUALIFIED",
+        "priority": "P1",
+        "tier": "Enterprise Tier",
+        "estimatedBudget": 75000,
+        "inquiryType": "Enterprise AI Deployment",
+        "source": "Inbound Demo Request",
+        "slaTargetHours": 1,
+        "routingQueue": "enterprise_exec_sales",
+        "suggestedAction": "Urgent: Assign to Senior Enterprise Account Director"
+      },
+      "audit": {
+        "validationPassed": true,
+        "triggeredRules": [
+          "HIGH_BUDGET_OVER_50K",
+          "ENTERPRISE_ORG_SIZE"
+        ],
+        "evaluatedAt": "2026-11-21T19:30:00.000Z"
+      }
+    },
+    {
+      "leadId": "LEAD-1002",
+      "contact": {
+        "fullName": "Alex Rivera",
+        "email": "alex.rivera@scaleventures.ai",
+        "company": "Scale Ventures AI",
+        "companySize": "50-250"
+      },
+      "qualification": {
+        "status": "QUALIFIED",
+        "priority": "P2",
+        "tier": "Mid-Market Tier",
+        "estimatedBudget": 18000,
+        "inquiryType": "AI Workflow Automation",
+        "source": "Webinar Referral",
+        "slaTargetHours": 4,
+        "routingQueue": "midmarket_sales",
+        "suggestedAction": "Assign to Dedicated Commercial Account Executive"
+      },
+      "audit": {
+        "validationPassed": true,
+        "triggeredRules": [
+          "MID_BUDGET_OVER_10K",
+          "MIDMARKET_ORG_SIZE"
+        ],
+        "evaluatedAt": "2026-11-21T19:30:00.000Z"
+      }
+    },
+    {
+      "leadId": "LEAD-1003",
+      "contact": {
+        "fullName": "Devon Vance",
+        "email": "devon@boutiqueshop.net",
+        "company": "Vance Boutique Retail",
+        "companySize": "1-10"
+      },
+      "qualification": {
+        "status": "QUALIFIED",
+        "priority": "P3",
+        "tier": "Standard",
+        "estimatedBudget": 3500,
+        "inquiryType": "Basic Integration",
+        "source": "Organic Search",
+        "slaTargetHours": 24,
+        "routingQueue": "marketing_nurture",
+        "suggestedAction": "Enroll in automated product onboarding sequence"
+      },
+      "audit": {
+        "validationPassed": true,
+        "triggeredRules": [
+          "SELF_SERVE_QUALIFIED"
+        ],
+        "evaluatedAt": "2026-11-21T19:30:00.000Z"
+      }
+    }
+  ],
+  "disqualifiedLeads": [
+    {
+      "leadId": "LEAD-1004",
+      "contact": {
+        "fullName": "Anonymous Prospect",
+        "email": "invalid-email-syntax@",
+        "company": null,
+        "companySize": "Unknown"
+      },
+      "qualification": {
+        "status": "DISQUALIFIED",
+        "priority": "N/A",
+        "tier": "Unqualified",
+        "estimatedBudget": -500,
+        "inquiryType": "Unknown Inquiry",
+        "source": "Automated Form Bot",
+        "slaTargetHours": null,
+        "routingQueue": "quarantine_review",
+        "suggestedAction": "Review validation errors or flag as automated spam"
+      },
+      "audit": {
+        "validationPassed": false,
+        "validationErrors": [
+          "Invalid or missing email address",
+          "Company name is mandatory",
+          "Budget must be a non-negative number"
+        ],
+        "evaluatedAt": "2026-11-21T19:30:00.000Z"
+      }
+    }
+  ]
+}

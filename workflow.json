@@ -1,0 +1,172 @@
+{
+  "name": "Automated Lead Processing Demo",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e4448377-505d-4f1c-99d8-8cfbc3ff73e0",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate synthetic lead data for demonstration\nconst sampleLeads = [\n  {\n    leadId: \"LEAD-1001\",\n    fullName: \"Sarah Jenkins\",\n    email: \"sarah.jenkins@cloudenterprise.io\",\n    company: \"Apex Cloud Technologies\",\n    companySize: \"500+\",\n    budget: 75000,\n    inquiryType: \"Enterprise AI Deployment\",\n    source: \"Inbound Demo Request\",\n    submittedAt: \"2026-11-21T18:30:00.000Z\"\n  },\n  {\n    leadId: \"LEAD-1002\",\n    fullName: \"Alex Rivera\",\n    email: \"alex.rivera@scaleventures.ai\",\n    company: \"Scale Ventures AI\",\n    companySize: \"50-250\",\n    budget: 18000,\n    inquiryType: \"AI Workflow Automation\",\n    source: \"Webinar Referral\",\n    submittedAt: \"2026-11-21T18:45:00.000Z\"\n  },\n  {\n    leadId: \"LEAD-1003\",\n    fullName: \"Devon Vance\",\n    email: \"devon@boutiqueshop.net\",\n    company: \"Vance Boutique Retail\",\n    companySize: \"1-10\",\n    budget: 3500,\n    inquiryType: \"Basic Integration\",\n    source: \"Organic Search\",\n    submittedAt: \"2026-11-21T19:00:00.000Z\"\n  },\n  {\n    leadId: \"LEAD-1004\",\n    fullName: \"Anonymous Prospect\",\n    email: \"invalid-email-syntax@\",\n    company: \"\",\n    companySize: \"Unknown\",\n    budget: -500,\n    inquiryType: \"Unknown Inquiry\",\n    source: \"Automated Form Bot\",\n    submittedAt: \"2026-11-21T19:15:00.000Z\"\n  }\n];\n\nreturn sampleLeads.map(lead => ({ json: lead }));"
+      },
+      "id": "7df577b2-132b-426b-9cb6-c2ba31fca67b",
+      "name": "Generate Sample Leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate Lead Information\nconst items = $input.all();\nconst emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/;\n\nreturn items.map(item => {\n  const lead = item.json;\n  const errors = [];\n\n  // 1. Email format check\n  if (!lead.email || !emailRegex.test(lead.email.trim())) {\n    errors.push(\"Invalid or missing email address\");\n  }\n\n  // 2. Company required check\n  if (!lead.company || lead.company.trim().length === 0) {\n    errors.push(\"Company name is mandatory\");\n  }\n\n  // 3. Name required check\n  if (!lead.fullName || lead.fullName.trim().length === 0) {\n    errors.push(\"Contact full name is mandatory\");\n  }\n\n  // 4. Budget integrity check\n  if (typeof lead.budget !== 'number' || lead.budget < 0) {\n    errors.push(\"Budget must be a non-negative number\");\n  }\n\n  const isValid = errors.length === 0;\n\n  return {\n    json: {\n      ...lead,\n      isValid,\n      validationErrors: errors,\n      validatedAt: new Date().toISOString()\n    }\n  };\n});"
+      },
+      "id": "c86da534-192a-43cf-be62-8700201948ce",
+      "name": "Validate Lead Information",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "validate-lead-condition",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "e64516df-fcf7-4f42-a8c6-bfd7756f4d54",
+      "name": "Filter Valid Leads",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        940,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Categorize priority for valid leads\nconst items = $input.all();\n\nreturn items.map(item => {\n  const lead = item.json;\n  let priority = \"P3\";\n  let tier = \"Standard\";\n  let slaHours = 24;\n  let routingQueue = \"marketing_nurture\";\n  let suggestedAction = \"Enroll in automated product onboarding sequence\";\n  const rules = [];\n\n  if (lead.budget >= 50000 || lead.companySize === \"500+\") {\n    priority = \"P1\";\n    tier = \"Enterprise Tier\";\n    slaHours = 1;\n    routingQueue = \"enterprise_exec_sales\";\n    suggestedAction = \"Urgent: Assign to Senior Enterprise Account Director\";\n    if (lead.budget >= 50000) rules.push(\"HIGH_BUDGET_OVER_50K\");\n    if (lead.companySize === \"500+\") rules.push(\"ENTERPRISE_ORG_SIZE\");\n  } else if (lead.budget >= 10000 || lead.companySize === \"50-250\") {\n    priority = \"P2\";\n    tier = \"Mid-Market Tier\";\n    slaHours = 4;\n    routingQueue = \"midmarket_sales\";\n    suggestedAction = \"Assign to Dedicated Commercial Account Executive\";\n    if (lead.budget >= 10000) rules.push(\"MID_BUDGET_OVER_10K\");\n    if (lead.companySize === \"50-250\") rules.push(\"MIDMARKET_ORG_SIZE\");\n  } else {\n    rules.push(\"SELF_SERVE_QUALIFIED\");\n  }\n\n  return {\n    json: {\n      leadId: lead.leadId,\n      contact: {\n        fullName: lead.fullName,\n        email: lead.email,\n        company: lead.company,\n        companySize: lead.companySize\n      },\n      qualification: {\n        status: \"QUALIFIED\",\n        priority,\n        tier,\n        estimatedBudget: lead.budget,\n        inquiryType: lead.inquiryType,\n        source: lead.source,\n        slaTargetHours: slaHours,\n        routingQueue,\n        suggestedAction\n      },\n      audit: {\n        validationPassed: true,\n        triggeredRules: rules,\n        evaluatedAt: new Date().toISOString()\n      }\n    }\n  };\n});"
+      },
+      "id": "c1f7a6cf-82e1-455b-8012-f0ba2bca489d",
+      "name": "Categorize Lead Priority",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format structured JSON for disqualified leads\nconst items = $input.all();\n\nreturn items.map(item => {\n  const lead = item.json;\n  return {\n    json: {\n      leadId: lead.leadId || \"UNKNOWN\",\n      contact: {\n        fullName: lead.fullName || null,\n        email: lead.email || null,\n        company: lead.company || null,\n        companySize: lead.companySize || \"Unknown\"\n      },\n      qualification: {\n        status: \"DISQUALIFIED\",\n        priority: \"N/A\",\n        tier: \"Unqualified\",\n        estimatedBudget: typeof lead.budget === 'number' ? lead.budget : null,\n        inquiryType: lead.inquiryType || \"Unspecified\",\n        source: lead.source || \"Unknown\",\n        slaTargetHours: null,\n        routingQueue: \"quarantine_review\",\n        suggestedAction: \"Review validation errors or flag as automated spam\"\n      },\n      audit: {\n        validationPassed: false,\n        validationErrors: lead.validationErrors || [\"Unknown validation failure\"],\n        evaluatedAt: new Date().toISOString()\n      }\n    }\n  };\n});"
+      },
+      "id": "8f895655-bfa3-4217-bc45-e6f7902d51ee",
+      "name": "Format Disqualified Leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Generate Sample Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Sample Leads": {
+      "main": [
+        [
+          {
+            "node": "Validate Lead Information",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Lead Information": {
+      "main": [
+        [
+          {
+            "node": "Filter Valid Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Valid Leads": {
+      "main": [
+        [
+          {
+            "node": "Categorize Lead Priority",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Disqualified Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b1a78950-7f28-4bf5-b82b-6893a9d94911",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ai-agent-lab-demo-instance"
+  },
+  "id": "automated-lead-processing-demo",
+  "tags": [
+    {
+      "name": "AI Automation",
+      "id": "ai-automation-tag"
+    },
+    {
+      "name": "Lead Management",
+      "id": "lead-management-tag"
+    }
+  ]
+}
