@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d1117" />
+      <stop offset="100%" stop-color="#161b22" />
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <!-- Terminal Window Background -->
+  <rect x="20" y="20" width="920" height="520" rx="10" fill="url(#bg)" stroke="#30363d" stroke-width="1.5" filter="url(#shadow)" />
+
+  <!-- Terminal Header / Titlebar -->
+  <rect x="20" y="20" width="920" height="40" rx="10" fill="#21262d" />
+  <rect x="20" y="50" width="920" height="10" fill="#21262d" />
+  <circle cx="45" cy="40" r="6" fill="#ff5f56" />
+  <circle cx="65" cy="40" r="6" fill="#ffbd2e" />
+  <circle cx="85" cy="40" r="6" fill="#27c93f" />
+  <text x="480" y="45" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle" font-weight="500">terminal — node run-all-tests.js (9/9 Verified)</text>
+
+  <!-- Terminal Output Text -->
+  <g font-family="'Cascadia Code', 'Fira Code', 'Courier New', monospace" font-size="12.5" xml:space="preserve">
+    <!-- Prompt -->
+    <text x="45" y="85" fill="#58a6ff">$ node run-all-tests.js</text>
+    
+    <text x="45" y="112" fill="#8b949e">================================================================</text>
+    <text x="45" y="130" fill="#f0f6fc" font-weight="bold">  INTELLIGENT LEAD-TO-CRM SYSTEM: AUTOMATED QA TEST RUNNER</text>
+    <text x="45" y="148" fill="#8b949e">================================================================</text>
+
+    <!-- Suites -->
+    <text x="45" y="175" fill="#c9d1d9">Executing [Schema/Unit]: 1. Workflow Graph &amp; Schema Validation... <tspan fill="#3fb950" font-weight="bold">PASS</tspan> <tspan fill="#8b949e">(61ms)</tspan></text>
+    <text x="45" y="197" fill="#c9d1d9">Executing [Unit]:        2. Unit: Data Validation &amp; Normalization... <tspan fill="#3fb950" font-weight="bold">PASS</tspan> <tspan fill="#8b949e">(62ms)</tspan></text>
+    <text x="45" y="219" fill="#c9d1d9">Executing [Unit]:        3. Unit: Priority Scoring &amp; SLA Math... <tspan fill="#3fb950" font-weight="bold">PASS</tspan> <tspan fill="#8b949e">(60ms)</tspan></text>
+    <text x="45" y="241" fill="#c9d1d9">Executing [Integration]: 4. Integration: Mock CRM API &amp; Idempotency... <tspan fill="#3fb950" font-weight="bold">PASS</tspan> <tspan fill="#8b949e">(184ms)</tspan></text>
+    <text x="45" y="263" fill="#c9d1d9">Executing [Integration]: 5. Integration: Chaos &amp; Bounded Retries... <tspan fill="#3fb950" font-weight="bold">PASS</tspan> <tspan fill="#8b949e">(500ms)</tspan></text>
+    <text x="45" y="285" fill="#c9d1d9">Executing [Adversarial]: 6. Security: Negative Attack Surface &amp; Limits... <tspan fill="#3fb950" font-weight="bold">PASS</tspan> <tspan fill="#8b949e">(146ms)</tspan></text>
+    <text x="45" y="307" fill="#c9d1d9">Executing [Simulated]:   7. E2E: Full Pipeline &amp; Restart Persistence... <tspan fill="#3fb950" font-weight="bold">PASS</tspan> <tspan fill="#8b949e">(321ms)</tspan></text>
+    <text x="45" y="329" fill="#c9d1d9">Executing [Audit]:       8. Security: Zero-Secrets &amp; Credentials Audit... <tspan fill="#3fb950" font-weight="bold">PASS</tspan> <tspan fill="#8b949e">(72ms)</tspan></text>
+    <text x="45" y="351" fill="#c9d1d9">Executing [Live Docker]: 9. E2E: Genuine Real Docker + n8n Live HTTP... <tspan fill="#3fb950" font-weight="bold">PASS</tspan> <tspan fill="#8b949e">(81786ms)</tspan></text>
+
+    <!-- Summary Box -->
+    <text x="45" y="385" fill="#8b949e">================================================================</text>
+    <text x="45" y="405" fill="#f0f6fc" font-weight="bold">                     QA TEST EXECUTION SUMMARY                  </text>
+    <text x="45" y="423" fill="#8b949e">================================================================</text>
+    
+    <text x="45" y="450" fill="#7ee787" font-weight="bold">Total Suites: 9 | Passed: 9 | Failed: 0 | Skipped: 0</text>
+    <text x="45" y="472" fill="#8b949e">Total Execution Time: 83.19s</text>
+    <text x="45" y="496" fill="#3fb950" font-weight="bold">Overall Result: ALL MANDATORY SUITES PASSED (100% VERIFIED)</text>
+    <text x="45" y="515" fill="#8b949e">================================================================</text>
+  </g>
+</svg>

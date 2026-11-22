@@ -39,7 +39,7 @@ flowchart LR
     D --> F["Upsert into CRM<br/>(X-Idempotency-Key)"]
     F --> G{"Priority == P1?"}
     
-    G -->|Yes| H["🚨 Dispatch Executive Alert<br/>(Slack / Pager)"]
+    G -->|Yes| H["🚨 Record Executive Alert<br/>(Local Alert Registry)"]
     G -->|No| I["Standard CRM Queue Routing"]
     
     subgraph Monitoring["Background Daemon"]
