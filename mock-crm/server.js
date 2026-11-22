@@ -327,7 +327,9 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-function start(port = PORT, dbPath = null) {
+const HOST = process.env.HOST || '0.0.0.0';
+
+function start(port = PORT, dbPath = null, host = HOST) {
   if (dbPath) {
     process.env.DB_PATH = dbPath;
   }
@@ -337,8 +339,8 @@ function start(port = PORT, dbPath = null) {
   }
   getDb();
   return new Promise(resolve => {
-    server.listen(port, '127.0.0.1', () => {
-      console.log(`[Mock CRM] Server listening on 127.0.0.1:${port}`);
+    server.listen(port, host, () => {
+      console.log(`[Mock CRM] Server listening on ${host}:${port}`);
       resolve(server);
     });
   });

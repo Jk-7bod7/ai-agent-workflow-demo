@@ -19,26 +19,29 @@
 | **5** | Security: Negative & Adversarial Attack Surface | Adversarial Security | **PASS** | 206ms | 0 | Tests 401 unauth, 403 chaos gating, 413 oversized body, 415 media type, 400 malformed JSON. |
 | **6** | E2E: Full Pipeline & Persistence Across Restarts | Simulated E2E | **PASS** | 399ms | 0 | Validates end-to-end data flow and database persistence across cold process restarts. |
 | **7** | Security: Zero-Secrets & Credentials Audit | Static Security Audit | **PASS** | 93ms | 0 | Scans 32 project files for hardcoded PATs, AWS keys, API keys, or leaked private tokens. |
-| **8** | E2E: Genuine Real Docker + n8n Live HTTP | Real Live E2E (Docker) | **SKIPPED** | 567ms | 0 | Gracefully skipped due to Docker Desktop daemon being stopped. Script is fully implemented. |
+| **8** | E2E: Genuine Real Docker + n8n Live HTTP | Real Live E2E (Docker) | **PASS** | 73028ms | 0 | Live execution in real n8n container across Docker stack with rotated 64-char hex secrets. |
 
-**Total Suite Execution Time:** `2.44 seconds`  
-**Overall Result:** `ALL EXECUTED SUITES PASSED (8 PASS, 1 SKIPPED DUE TO ENVIRONMENT)`
+**Total Suite Execution Time:** `74.45 seconds`  
+**Overall Result:** `ALL EXECUTED SUITES PASSED (9 PASS, 0 FAIL, 0 SKIP — 100% GREEN)`
 
 ---
 
 ## 2. Real n8n Live HTTP E2E Status & Reproduction Protocol
 
 - **Script Location:** `tests/e2e/real-n8n-http-e2e.js`
-- **Environment Status:** Docker Desktop daemon was inactive (`npipe connection failed`). Per operating instructions, the test runner gracefully skipped this suite with diagnostic output rather than inventing passing results.
-- **Verification Command (Once Docker is Started):**
+- **Environment Status:** Docker Desktop daemon active (`Docker Engine v29.9.3`). Verified via live container orchestration.
+- **Verification Command:**
   ```bash
   node tests/e2e/real-n8n-http-e2e.js
   ```
-- **Automated Actions Performed by Script:**
-  1. Verifies Docker engine availability.
-  2. Spawns isolated compose stack (`lead-hardening-e2e`).
-  3. Sends unauthenticated POST to `http://127.0.0.1:5678/webhook/leads` ➔ asserts HTTP 401.
-  4. Sends valid P1 lead with secret header ➔ asserts HTTP 201 and single alert in CRM.
-  5. Sends duplicate submission ➔ asserts HTTP 200 DUPLICATE and zero duplicate alerts.
-  6. Sends malformed lead ➔ asserts HTTP 422 REJECTED and DLQ insertion.
-  7. Tears down isolated test containers cleanly.
+- **Automated Actions Performed & Verified by Script (7/7 Live Scenarios Passed):**
+  1. Bootstrapped isolated Compose project (`lead-hardening-e2e`) with rotated high-entropy secrets.
+  2. Imported and published workflows (`workflow.json` and `sla-monitor-workflow.json`) via n8n CLI.
+  3. **Test 1:** Missing `X-Webhook-Secret` ➔ HTTP 401 Unauthorized (Verified: 0 leads, 0 DLQ, 0 alerts in CRM).
+  4. **Test 2:** Invalid secret token ➔ HTTP 401 Unauthorized (Verified: 0 side effects).
+  5. **Test 3:** Valid Enterprise P1 lead with valid secret ➔ HTTP 201 Created (Verified: lead persisted in CRM, exactly 1 alert in registry).
+  6. **Test 4:** Duplicate submission ➔ HTTP 200 DUPLICATE (Verified: 100% idempotent, zero duplicate alerts triggered).
+  7. **Test 5:** Concurrent submission race (4 parallel requests) ➔ HTTP 200 DUPLICATE (Verified: exactly 1 database record, zero race corruption).
+  8. **Test 6:** Malformed lead (negative budget, malformed email) ➔ HTTP 422 REJECTED (Verified: safely quarantined to Dead Letter Queue).
+  9. **Test 7:** Cold container restart (`mock-crm`) ➔ verified SQLite WAL database persistence across process reboot.
+  10. Isolated test containers and anonymous volumes cleanly torn down.

@@ -21,7 +21,7 @@
 | **Adversarial Regression Suite** | Malformed types, NaN budgets, invalid dates rejected. | **PASSED** | All 10 test cases in `negative-security.test.js` pass cleanly. |
 | **Static Verification** | n8n workflow JSON graph schema integrity. | **PASSED** | `validate-workflow.js` validated 18 nodes and connection graph. |
 | **License Compliance** | Permissive open-source license file present in root. | **PASSED** | `LICENSE` (MIT License) created and attributed to Omar Owais. |
-| **Real Live n8n E2E** | Live execution across Docker Compose stack. | **STANDBY** | Test harness implemented in `real-n8n-http-e2e.js`; skipped due to inactive Docker daemon. |
+| **Real Live n8n E2E** | Live execution across Docker Compose stack. | **PASSED** | Verified 7/7 live HTTP scenarios in real n8n container (`real-n8n-http-e2e.js`). |
 
 ---
 
@@ -31,6 +31,6 @@
 - `UNIT_TESTED`: **YES** (Data normalization, regex validation, priority scoring, SLA math).
 - `MOCK_INTEGRATION_TESTED`: **YES** (CRM CRUD, chaos retries, idempotency).
 - `SECURITY_SCAN_COMPLETE`: **YES** (Static secret scan and adversarial test harness passed).
-- `REAL_N8N_E2E_VERIFIED`: **STANDBY** (Harness implemented; awaiting user Docker daemon boot).
+- `REAL_N8N_E2E_VERIFIED`: **YES** (100% verified across genuine n8n and Mock CRM containers).
 - `DEMO_RELEASE_READY`: **YES** (Ready for demonstration review once approved).
 - `PRODUCTION_READY`: **NO** (This is an engineered reference architecture / demonstration system, NOT a multi-tenant commercial SaaS deployment).

@@ -13,7 +13,7 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1.1,
       "position": [160, 300],
-      "webhookId": "lead-intake-webhook"
+      "webhookId": "leads"
     },
     {
       "parameters": {},
@@ -513,7 +513,7 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   },

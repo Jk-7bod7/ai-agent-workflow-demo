@@ -46,6 +46,7 @@ services:
       - WEBHOOK_URL=http://127.0.0.1:5678/
       - GENERIC_TIMEZONE=UTC
       - N8N_RUNNERS_ENABLED=true
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
       - NODE_FUNCTION_ALLOW_BUILTIN=crypto
       - CRM_API_KEY=${CRM_API_KEY:-test-crm-sec-token-2026}
       - WEBHOOK_SECRET=${WEBHOOK_SECRET:-lead-webhook-secret-token-2026}
