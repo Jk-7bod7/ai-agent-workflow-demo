@@ -15,5 +15,11 @@ node_modules/
 # Environment and sensitive keys
 .env
 .env.*
+!.env.example
 *.pem
 *.key
+
+# Database and test artifacts
+*.sqlite
+*.sqlite*
+data/

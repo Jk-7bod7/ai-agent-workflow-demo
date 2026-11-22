@@ -1,42 +1,47 @@
 {
-  "name": "Automated Lead Processing Demo",
+  "name": "Intelligent Lead-to-CRM Automation System",
   "nodes": [
     {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leads",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-intake",
+      "name": "Webhook Intake",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [160, 300],
+      "webhookId": "leads"
+    },
+    {
       "parameters": {},
-      "id": "e4448377-505d-4f1c-99d8-8cfbc3ff73e0",
-      "name": "Manual Trigger",
+      "id": "node-manual-test-trigger",
+      "name": "Manual Test Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [
-        220,
-        300
-      ]
+      "position": [160, 100]
     },
     {
       "parameters": {
-        "jsCode": "// Generate synthetic lead data for demonstration\nconst sampleLeads = [\n  {\n    leadId: \"LEAD-1001\",\n    fullName: \"Sarah Jenkins\",\n    email: \"sarah.jenkins@cloudenterprise.io\",\n    company: \"Apex Cloud Technologies\",\n    companySize: \"500+\",\n    budget: 75000,\n    inquiryType: \"Enterprise AI Deployment\",\n    source: \"Inbound Demo Request\",\n    submittedAt: \"2026-11-21T18:30:00.000Z\"\n  },\n  {\n    leadId: \"LEAD-1002\",\n    fullName: \"Alex Rivera\",\n    email: \"alex.rivera@scaleventures.ai\",\n    company: \"Scale Ventures AI\",\n    companySize: \"50-250\",\n    budget: 18000,\n    inquiryType: \"AI Workflow Automation\",\n    source: \"Webinar Referral\",\n    submittedAt: \"2026-11-21T18:45:00.000Z\"\n  },\n  {\n    leadId: \"LEAD-1003\",\n    fullName: \"Devon Vance\",\n    email: \"devon@boutiqueshop.net\",\n    company: \"Vance Boutique Retail\",\n    companySize: \"1-10\",\n    budget: 3500,\n    inquiryType: \"Basic Integration\",\n    source: \"Organic Search\",\n    submittedAt: \"2026-11-21T19:00:00.000Z\"\n  },\n  {\n    leadId: \"LEAD-1004\",\n    fullName: \"Anonymous Prospect\",\n    email: \"invalid-email-syntax@\",\n    company: \"\",\n    companySize: \"Unknown\",\n    budget: -500,\n    inquiryType: \"Unknown Inquiry\",\n    source: \"Automated Form Bot\",\n    submittedAt: \"2026-11-21T19:15:00.000Z\"\n  }\n];\n\nreturn sampleLeads.map(lead => ({ json: lead }));"
+        "jsCode": "// Generates synthetic lead for manual canvas execution\nconst secret = (typeof $env !== 'undefined' && $env.WEBHOOK_SECRET) ? $env.WEBHOOK_SECRET : '';\nreturn [{\n  json: {\n    headers: {\n      \"x-webhook-secret\": secret\n    },\n    body: {\n      fullName: \"Elena Rostova\",\n      email: \"elena.rostova@globalhypercloud.com\",\n      company: \"Global HyperCloud Inc\",\n      companySize: \"500+\",\n      budget: 85000,\n      inquiryType: \"Enterprise AI Orchestration & CRM Integration\",\n      source: \"Manual Demo Test\",\n      submittedAt: new Date().toISOString()\n    }\n  }\n}];"
       },
-      "id": "7df577b2-132b-426b-9cb6-c2ba31fca67b",
-      "name": "Generate Sample Leads",
+      "id": "node-mock-payload",
+      "name": "Mock Test Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        460,
-        300
-      ]
+      "position": [360, 100]
     },
     {
       "parameters": {
-        "jsCode": "// Validate Lead Information\nconst items = $input.all();\nconst emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/;\n\nreturn items.map(item => {\n  const lead = item.json;\n  const errors = [];\n\n  // 1. Email format check\n  if (!lead.email || !emailRegex.test(lead.email.trim())) {\n    errors.push(\"Invalid or missing email address\");\n  }\n\n  // 2. Company required check\n  if (!lead.company || lead.company.trim().length === 0) {\n    errors.push(\"Company name is mandatory\");\n  }\n\n  // 3. Name required check\n  if (!lead.fullName || lead.fullName.trim().length === 0) {\n    errors.push(\"Contact full name is mandatory\");\n  }\n\n  // 4. Budget integrity check\n  if (typeof lead.budget !== 'number' || lead.budget < 0) {\n    errors.push(\"Budget must be a non-negative number\");\n  }\n\n  const isValid = errors.length === 0;\n\n  return {\n    json: {\n      ...lead,\n      isValid,\n      validationErrors: errors,\n      validatedAt: new Date().toISOString()\n    }\n  };\n});"
+        "jsCode": "const crypto = require('crypto');\nif (!crypto || typeof crypto.createHash !== 'function') {\n  throw new Error(\"FATAL: Node.js 'crypto' module is required for secure SHA-256 idempotency fingerprinting.\");\n}\n\nconst items = $input.all();\nconst EXPECTED_SECRET = (typeof $env !== 'undefined' && typeof $env.WEBHOOK_SECRET === 'string') ? $env.WEBHOOK_SECRET.trim() : '';\n\nfunction sanitizeString(val, fallback = '', maxLength = 255) {\n  if (typeof val !== 'string') return fallback;\n  const normalized = val.normalize('NFKC').trim();\n  return normalized.length > maxLength ? normalized.substring(0, maxLength) : normalized;\n}\n\nreturn items.map(item => {\n  const raw = item.json.body || item.json;\n  const headers = item.json.headers || {};\n  \n  // Fail-closed header authentication (Strictly no query parameter secret bypass)\n  const clientSecret = (typeof headers['x-webhook-secret'] === 'string') ? headers['x-webhook-secret'].trim() : '';\n  const isAuthorized = EXPECTED_SECRET.length > 0 && clientSecret.length > 0 && clientSecret === EXPECTED_SECRET;\n  \n  const email = sanitizeString(raw.email, '', 254).toLowerCase();\n  const fullName = sanitizeString(raw.fullName, '', 100);\n  const company = sanitizeString(raw.company, '', 100);\n  const companySize = sanitizeString(raw.companySize, 'Unknown', 50);\n  \n  // Strict numeric budget handling: do NOT silently coerce non-numeric strings to 0\n  let budget = raw.budget;\n  if (typeof budget === 'string' && budget.trim() !== '') {\n    const parsed = Number(budget);\n    budget = Number.isFinite(parsed) ? parsed : NaN;\n  } else if (typeof budget !== 'number') {\n    budget = NaN;\n  }\n  \n  const inquiryType = sanitizeString(raw.inquiryType, 'General Inquiry', 2000);\n  const source = sanitizeString(raw.source, 'Inbound Webhook', 100);\n  \n  let submittedAt = raw.submittedAt;\n  if (typeof submittedAt === 'string' && submittedAt.trim() !== '') {\n    const parsedDate = new Date(submittedAt);\n    submittedAt = isNaN(parsedDate.getTime()) ? 'INVALID_DATE' : parsedDate.toISOString();\n  } else {\n    submittedAt = new Date().toISOString();\n  }\n\n  // Deterministic Cryptographic SHA-256 Idempotency Key\n  const hashPayload = `${email}|${company.toLowerCase()}|${fullName.toLowerCase()}`;\n  const idempotencyKey = crypto.createHash('sha256').update(hashPayload, 'utf8').digest('hex');\n  \n  let leadId = raw.leadId;\n  if (typeof leadId === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(leadId.trim())) {\n    leadId = leadId.trim();\n  } else {\n    leadId = `LEAD-${idempotencyKey.substring(0, 8).toUpperCase()}`;\n  }\n\n  return {\n    json: {\n      isAuthorized,\n      leadId,\n      idempotencyKey,\n      fullName,\n      email,\n      company,\n      companySize,\n      budget,\n      inquiryType,\n      source,\n      submittedAt\n    }\n  };\n});"
       },
-      "id": "c86da534-192a-43cf-be62-8700201948ce",
-      "name": "Validate Lead Information",
+      "id": "node-normalize-fingerprint",
+      "name": "Normalize & Authenticate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        700,
-        300
-      ]
+      "position": [380, 300]
     },
     {
       "parameters": {
@@ -48,7 +53,59 @@
           },
           "conditions": [
             {
-              "id": "validate-lead-condition",
+              "id": "cond-auth",
+              "leftValue": "={{ $json.isAuthorized }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-check-auth",
+      "name": "Is Ingress Authorized?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [580, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: 'Unauthorized: Missing or invalid X-Webhook-Secret header' }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "node-respond-unauthorized",
+      "name": "Respond 401 Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [800, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "const EMAIL_REGEX = /^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;\nconst items = $input.all();\n\nreturn items.map(item => {\n  const lead = item.json;\n  const errors = [];\n\n  if (!lead.email || !EMAIL_REGEX.test(lead.email)) {\n    errors.push('Invalid or missing email address');\n  }\n  if (!lead.fullName || lead.fullName.length < 2) {\n    errors.push('Full name is required (minimum 2 characters)');\n  } else if (lead.fullName.length > 100) {\n    errors.push('Full name exceeds maximum allowed length (100 characters)');\n  }\n  if (!lead.company || lead.company.length === 0) {\n    errors.push('Company name is mandatory');\n  } else if (lead.company.length > 100) {\n    errors.push('Company name exceeds maximum allowed length (100 characters)');\n  }\n  if (typeof lead.budget !== 'number' || !Number.isFinite(lead.budget) || isNaN(lead.budget)) {\n    errors.push('Budget must be a valid finite number');\n  } else if (lead.budget < 0) {\n    errors.push('Budget must be a non-negative number');\n  } else if (lead.budget > 1000000000) {\n    errors.push('Budget exceeds maximum permissible limit ($1,000,000,000)');\n  }\n  if (lead.submittedAt === 'INVALID_DATE') {\n    errors.push('Invalid submission timestamp format (must be valid ISO-8601 string)');\n  }\n\n  const spamKeywords = ['viagra', 'crypto-doubler', 'buy followers', 'cheap seo bot', 'scraper bot'];\n  const content = `${lead.fullName || ''} ${lead.company || ''} ${lead.inquiryType || ''}`.toLowerCase();\n  for (const kw of spamKeywords) {\n    if (content.includes(kw)) {\n      errors.push(`Spam heuristic match detected: \"${kw}\"`);\n    }\n  }\n\n  return {\n    json: {\n      ...lead,\n      isValid: errors.length === 0,\n      validationErrors: errors,\n      validatedAt: new Date().toISOString()\n    }\n  };\n});"
+      },
+      "id": "node-validate-lead",
+      "name": "Validate Lead Integrity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [800, 240]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-valid",
               "leftValue": "={{ $json.isValid }}",
               "rightValue": true,
               "operator": {
@@ -60,66 +117,293 @@
           "combinator": "and"
         }
       },
-      "id": "e64516df-fcf7-4f42-a8c6-bfd7756f4d54",
+      "id": "node-filter-valid",
       "name": "Filter Valid Leads",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        940,
-        300
-      ]
+      "position": [1020, 240]
     },
     {
       "parameters": {
-        "jsCode": "// Categorize priority for valid leads\nconst items = $input.all();\n\nreturn items.map(item => {\n  const lead = item.json;\n  let priority = \"P3\";\n  let tier = \"Standard\";\n  let slaHours = 24;\n  let routingQueue = \"marketing_nurture\";\n  let suggestedAction = \"Enroll in automated product onboarding sequence\";\n  const rules = [];\n\n  if (lead.budget >= 50000 || lead.companySize === \"500+\") {\n    priority = \"P1\";\n    tier = \"Enterprise Tier\";\n    slaHours = 1;\n    routingQueue = \"enterprise_exec_sales\";\n    suggestedAction = \"Urgent: Assign to Senior Enterprise Account Director\";\n    if (lead.budget >= 50000) rules.push(\"HIGH_BUDGET_OVER_50K\");\n    if (lead.companySize === \"500+\") rules.push(\"ENTERPRISE_ORG_SIZE\");\n  } else if (lead.budget >= 10000 || lead.companySize === \"50-250\") {\n    priority = \"P2\";\n    tier = \"Mid-Market Tier\";\n    slaHours = 4;\n    routingQueue = \"midmarket_sales\";\n    suggestedAction = \"Assign to Dedicated Commercial Account Executive\";\n    if (lead.budget >= 10000) rules.push(\"MID_BUDGET_OVER_10K\");\n    if (lead.companySize === \"50-250\") rules.push(\"MIDMARKET_ORG_SIZE\");\n  } else {\n    rules.push(\"SELF_SERVE_QUALIFIED\");\n  }\n\n  return {\n    json: {\n      leadId: lead.leadId,\n      contact: {\n        fullName: lead.fullName,\n        email: lead.email,\n        company: lead.company,\n        companySize: lead.companySize\n      },\n      qualification: {\n        status: \"QUALIFIED\",\n        priority,\n        tier,\n        estimatedBudget: lead.budget,\n        inquiryType: lead.inquiryType,\n        source: lead.source,\n        slaTargetHours: slaHours,\n        routingQueue,\n        suggestedAction\n      },\n      audit: {\n        validationPassed: true,\n        triggeredRules: rules,\n        evaluatedAt: new Date().toISOString()\n      }\n    }\n  };\n});"
+        "method": "POST",
+        "url": "http://mock-crm:3001/api/v1/dlq",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CRM_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { payload: $json, errorReason: 'Validation Failure: ' + $json.validationErrors.join('; ') } }}",
+        "options": {}
       },
-      "id": "c1f7a6cf-82e1-455b-8012-f0ba2bca489d",
-      "name": "Categorize Lead Priority",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1180,
-        200
-      ]
+      "id": "node-quarantine-dlq",
+      "name": "Quarantine to DLQ",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1240, 420]
     },
     {
       "parameters": {
-        "jsCode": "// Format structured JSON for disqualified leads\nconst items = $input.all();\n\nreturn items.map(item => {\n  const lead = item.json;\n  return {\n    json: {\n      leadId: lead.leadId || \"UNKNOWN\",\n      contact: {\n        fullName: lead.fullName || null,\n        email: lead.email || null,\n        company: lead.company || null,\n        companySize: lead.companySize || \"Unknown\"\n      },\n      qualification: {\n        status: \"DISQUALIFIED\",\n        priority: \"N/A\",\n        tier: \"Unqualified\",\n        estimatedBudget: typeof lead.budget === 'number' ? lead.budget : null,\n        inquiryType: lead.inquiryType || \"Unspecified\",\n        source: lead.source || \"Unknown\",\n        slaTargetHours: null,\n        routingQueue: \"quarantine_review\",\n        suggestedAction: \"Review validation errors or flag as automated spam\"\n      },\n      audit: {\n        validationPassed: false,\n        validationErrors: lead.validationErrors || [\"Unknown validation failure\"],\n        evaluatedAt: new Date().toISOString()\n      }\n    }\n  };\n});"
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'REJECTED', error: 'Validation failed', validationErrors: $json.validationErrors }) }}",
+        "options": {
+          "responseCode": 422
+        }
       },
-      "id": "8f895655-bfa3-4217-bc45-e6f7902d51ee",
-      "name": "Format Disqualified Leads",
+      "id": "node-respond-invalid",
+      "name": "Respond 422 Unprocessable",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1460, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const lead = item.json;\n  let priority = 'P3';\n  let tier = 'Standard SMB';\n  let slaTargetHours = 24;\n  let routingQueue = 'marketing_nurture';\n  let suggestedAction = 'Enroll in self-serve automated onboarding sequence';\n  const rules = [];\n\n  const isEnterpriseSize = lead.companySize === '500+' || lead.companySize === '250-500';\n  const isHighBudget = typeof lead.budget === 'number' && lead.budget >= 50000;\n  const isMidmarketSize = lead.companySize === '50-250';\n  const isMidBudget = typeof lead.budget === 'number' && lead.budget >= 10000;\n\n  if (isHighBudget || isEnterpriseSize) {\n    priority = 'P1';\n    tier = 'Enterprise Tier';\n    slaTargetHours = 1;\n    routingQueue = 'enterprise_exec_sales';\n    suggestedAction = 'URGENT: Direct assignment to Senior Enterprise Account Director';\n    if (isHighBudget) rules.push('RULE_HIGH_BUDGET_OVER_50K');\n    if (isEnterpriseSize) rules.push('RULE_ENTERPRISE_ORG_SIZE');\n  } else if (isMidBudget || isMidmarketSize) {\n    priority = 'P2';\n    tier = 'Mid-Market Tier';\n    slaTargetHours = 4;\n    routingQueue = 'midmarket_sales';\n    suggestedAction = 'Route to dedicated Commercial Account Executive';\n    if (isMidBudget) rules.push('RULE_MID_BUDGET_OVER_10K');\n    if (isMidmarketSize) rules.push('RULE_MIDMARKET_ORG_SIZE');\n  } else {\n    rules.push('RULE_STANDARD_QUALIFICATION');\n  }\n\n  const parsedTime = lead.submittedAt && lead.submittedAt !== 'INVALID_DATE' ? new Date(lead.submittedAt).getTime() : NaN;\n  const submissionTime = Number.isFinite(parsedTime) ? parsedTime : Date.now();\n  const slaDeadline = new Date(submissionTime + slaTargetHours * 60 * 60 * 1000).toISOString();\n\n  return {\n    json: {\n      ...lead,\n      priority,\n      tier,\n      slaTargetHours,\n      slaDeadline,\n      routingQueue,\n      suggestedAction,\n      triggeredRules: rules\n    }\n  };\n});"
+      },
+      "id": "node-score-categorize",
+      "name": "Score & Categorize Priority",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1180,
-        420
-      ]
+      "position": [1240, 140]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://mock-crm:3001/api/v1/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CRM_API_KEY }}"
+            },
+            {
+              "name": "X-Idempotency-Key",
+              "value": "={{ $json.idempotencyKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "node-upsert-crm",
+      "name": "Upsert into CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1460, 140]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-duplicate",
+              "leftValue": "={{ $json.body.status }}",
+              "rightValue": "DUPLICATE",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-check-duplicate",
+      "name": "Is Duplicate Submission?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1680, 140]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'DUPLICATE', message: $json.body.message, leadId: $json.body.lead.lead_id, priority: $json.body.lead.priority, slaDeadline: $json.body.lead.sla_deadline }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "node-respond-duplicate",
+      "name": "Respond 200 Duplicate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1920, 20]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-p1",
+              "leftValue": "={{ $json.body.lead.priority }}",
+              "rightValue": "P1",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-check-p1",
+      "name": "Is High Priority (P1)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1920, 240]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://mock-crm:3001/api/v1/alerts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CRM_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { leadId: $json.body.lead.lead_id, priority: 'P1', channel: 'local_alert_registry', message: '🚨 URGENT P1 ENTERPRISE LEAD (Internal Alert Registry): ' + $json.body.lead.full_name + ' from ' + $json.body.lead.company + ' (Budget: $' + $json.body.lead.budget + '). SLA deadline: ' + $json.body.lead.sla_deadline } }}",
+        "options": {}
+      },
+      "id": "node-dispatch-alert",
+      "name": "Log Internal Executive Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2160, 140]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'SUCCESS', priority: 'P1', internalAlertLogged: true, leadId: $json.leadId, dispatchedAt: $json.dispatchedAt }) }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "node-respond-p1",
+      "name": "Respond P1 Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2380, 140]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'SUCCESS', priority: $json.body.lead.priority, leadId: $json.body.lead.lead_id, slaDeadline: $json.body.lead.sla_deadline }) }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "node-respond-standard",
+      "name": "Respond Standard Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2160, 340]
     }
   ],
   "connections": {
-    "Manual Trigger": {
+    "Webhook Intake": {
       "main": [
         [
           {
-            "node": "Generate Sample Leads",
+            "node": "Normalize & Authenticate",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Generate Sample Leads": {
+    "Manual Test Trigger": {
       "main": [
         [
           {
-            "node": "Validate Lead Information",
+            "node": "Mock Test Payload",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Validate Lead Information": {
+    "Mock Test Payload": {
+      "main": [
+        [
+          {
+            "node": "Normalize & Authenticate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize & Authenticate": {
+      "main": [
+        [
+          {
+            "node": "Is Ingress Authorized?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Ingress Authorized?": {
+      "main": [
+        [
+          {
+            "node": "Validate Lead Integrity",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 401 Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Lead Integrity": {
       "main": [
         [
           {
@@ -134,14 +418,94 @@
       "main": [
         [
           {
-            "node": "Categorize Lead Priority",
+            "node": "Score & Categorize Priority",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Format Disqualified Leads",
+            "node": "Quarantine to DLQ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quarantine to DLQ": {
+      "main": [
+        [
+          {
+            "node": "Respond 422 Unprocessable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score & Categorize Priority": {
+      "main": [
+        [
+          {
+            "node": "Upsert into CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert into CRM": {
+      "main": [
+        [
+          {
+            "node": "Is Duplicate Submission?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Duplicate Submission?": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is High Priority (P1)?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is High Priority (P1)?": {
+      "main": [
+        [
+          {
+            "node": "Log Internal Executive Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Standard Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Internal Executive Alert": {
+      "main": [
+        [
+          {
+            "node": "Respond P1 Success",
             "type": "main",
             "index": 0
           }
@@ -149,24 +513,24 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "b1a78950-7f28-4bf5-b82b-6893a9d94911",
+  "versionId": "e1f5923b-0992-4f89-964c-f1245c33fb66",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "ai-agent-lab-demo-instance"
   },
-  "id": "automated-lead-processing-demo",
+  "id": "intelligent-lead-crm-system",
   "tags": [
     {
-      "name": "AI Automation",
-      "id": "ai-automation-tag"
+      "name": "CRM Automation",
+      "id": "crm-automation-tag"
     },
     {
-      "name": "Lead Management",
-      "id": "lead-management-tag"
+      "name": "Lead Intake",
+      "id": "lead-intake-tag"
     }
   ]
 }

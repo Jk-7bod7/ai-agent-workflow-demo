@@ -1,0 +1,42 @@
+[
+  {
+    "fullName": "Elena Rostova",
+    "email": "elena.rostova@globalhypercloud.com",
+    "company": "Global HyperCloud Inc",
+    "companySize": "500+",
+    "budget": 85000,
+    "inquiryType": "Enterprise AI Orchestration & CRM Integration",
+    "source": "Partner Referral Portal",
+    "submittedAt": "2026-11-21T20:00:00.000Z"
+  },
+  {
+    "fullName": "Tariq Mansour",
+    "email": "tariq.m@pulseflows.ai",
+    "company": "PulseFlows AI",
+    "companySize": "50-250",
+    "budget": 22000,
+    "inquiryType": "Automated Lead Qualification Pipeline",
+    "source": "Webinar Landing Page",
+    "submittedAt": "2026-11-21T20:15:00.000Z"
+  },
+  {
+    "fullName": "Liam O'Connor",
+    "email": "liam@craftsupplyco.ie",
+    "company": "Craft Supply Co",
+    "companySize": "1-10",
+    "budget": 4500,
+    "inquiryType": "Basic Form to Spreadsheet Automation",
+    "source": "Organic Search",
+    "submittedAt": "2026-11-21T20:30:00.000Z"
+  },
+  {
+    "fullName": "",
+    "email": "not-a-valid-email-domain@",
+    "company": "",
+    "companySize": "Unknown",
+    "budget": -1500,
+    "inquiryType": "Spam Lead Injection",
+    "source": "Scraper Bot",
+    "submittedAt": "2026-11-21T20:45:00.000Z"
+  }
+]

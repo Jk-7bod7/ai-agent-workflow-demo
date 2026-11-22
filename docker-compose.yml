@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  mock-crm:
+    image: node:22-alpine
+    container_name: demo-mock-crm
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./mock-crm:/app
+      - crm-storage:/data
+    environment:
+      - PORT=3001
+      - DB_PATH=/data/crm.sqlite
+      - CRM_API_KEY=${CRM_API_KEY:?CRM_API_KEY environment variable must be set and non-empty}
+      - ENABLE_TEST_CHAOS=${ENABLE_TEST_CHAOS:-false}
+      - NODE_ENV=${NODE_ENV:-production}
+    ports:
+      # Explicit 127.0.0.1 loopback binding prevents external network exposure
+      - "127.0.0.1:${CRM_PORT:-3001}:3001"
+    command: node server.js
+    networks:
+      - lead-automation-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
+  n8n:
+    image: n8nio/n8n:2.46.6
+    container_name: demo-n8n
+    restart: unless-stopped
+    ports:
+      # Explicit 127.0.0.1 loopback binding prevents external network exposure
+      - "127.0.0.1:${N8N_PORT:-5678}:5678"
+    environment:
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_HOST=127.0.0.1
+      - WEBHOOK_URL=http://127.0.0.1:5678/
+      - GENERIC_TIMEZONE=UTC
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - NODE_FUNCTION_ALLOW_BUILTIN=crypto
+      - CRM_API_KEY=${CRM_API_KEY:?CRM_API_KEY environment variable must be set and non-empty}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:?WEBHOOK_SECRET environment variable must be set and non-empty}
+    volumes:
+      - n8n-storage:/home/node/.n8n
+      - ./workflow.json:/workflows/workflow.json:ro
+      - ./sla-monitor-workflow.json:/workflows/sla-monitor-workflow.json:ro
+    depends_on:
+      mock-crm:
+        condition: service_healthy
+    networks:
+      - lead-automation-net
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1024M
+
+volumes:
+  crm-storage:
+  n8n-storage:
+
+networks:
+  lead-automation-net:
+    driver: bridge

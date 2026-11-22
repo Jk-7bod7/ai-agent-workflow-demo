@@ -1,0 +1,190 @@
+{
+  "name": "SLA Monitor & Escalation Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "node-sla-cron-trigger",
+      "name": "Hourly Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {},
+      "id": "node-sla-manual-trigger",
+      "name": "Manual SLA Check Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 120]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://mock-crm:3001/api/v1/sla/status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CRM_API_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-fetch-sla-status",
+      "name": "Fetch Overdue Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [440, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-overdue",
+              "leftValue": "={{ $json.overdueCount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-check-overdue-count",
+      "name": "Are Leads Overdue?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst overdueLeads = items[0].json.overdueLeads || [];\n\nreturn overdueLeads.map(lead => ({\n  json: {\n    leadId: lead.lead_id,\n    fullName: lead.full_name,\n    company: lead.company,\n    priority: lead.priority,\n    slaDeadline: lead.sla_deadline,\n    escalationLevel: 'EXECUTIVE_ESCALATION',\n    escalatedAt: new Date().toISOString()\n  }\n}));"
+      },
+      "id": "node-split-overdue",
+      "name": "Unpack Overdue Leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://mock-crm:3001/api/v1/alerts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.CRM_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"leadId\": {{ JSON.stringify($json.leadId) }},\n  \"priority\": \"SLA_BREACH\",\n  \"channel\": \"local_alert_registry\",\n  \"message\": \"⚠️ SLA DEADLINE BREACHED for \" + {{ JSON.stringify($json.fullName) }} + \" (\" + {{ JSON.stringify($json.company) }} + \"). Target SLA was \" + {{ JSON.stringify($json.slaDeadline) }}\n}",
+        "options": {}
+      },
+      "id": "node-dispatch-sla-alert",
+      "name": "Log Internal SLA Breach Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1160, 100]
+    }
+  ],
+  "connections": {
+    "Hourly Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Overdue Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual SLA Check Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Overdue Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Overdue Leads": {
+      "main": [
+        [
+          {
+            "node": "Are Leads Overdue?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Are Leads Overdue?": {
+      "main": [
+        [
+          {
+            "node": "Unpack Overdue Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unpack Overdue Leads": {
+      "main": [
+        [
+          {
+            "node": "Log Internal SLA Breach Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f789ab10-1234-4a5b-9c8d-e1f2a3b4c5d6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ai-agent-lab-demo-instance"
+  },
+  "id": "sla-monitor-workflow",
+  "tags": [
+    {
+      "name": "SLA Monitor",
+      "id": "sla-monitor-tag"
+    }
+  ]
+}
