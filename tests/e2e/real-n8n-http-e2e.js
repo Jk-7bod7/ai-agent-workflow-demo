@@ -97,9 +97,9 @@ async function runRealN8nE2E() {
 
   if (!isDockerAvailable()) {
     console.warn('⚠️  DOCKER DAEMON IS NOT RUNNING.');
-    console.warn('Status: BLOCKED_BY_ENVIRONMENT (Reported honestly per safety instructions).\n');
+    console.warn('Status: SKIPPED (BLOCKED_BY_ENVIRONMENT - Docker Desktop daemon is inactive).\n');
     return {
-      status: 'NOT_RUN',
+      status: 'SKIPPED',
       reason: 'Docker Desktop daemon is inactive'
     };
   }
@@ -408,9 +408,12 @@ if (require.main === module) {
     if (result && result.status === 'PASS') {
       console.log('✓ Real n8n Live HTTP E2E Test PASSED.');
       process.exit(0);
+    } else if (result && result.status === 'SKIPPED') {
+      console.warn(`⚠️  Real n8n Live HTTP E2E Test SKIPPED: ${result.reason || 'Docker daemon is inactive'}`);
+      process.exit(2);
     } else {
       console.log(`Test completed with status: ${result ? result.status : 'UNKNOWN'}`);
-      process.exit(0);
+      process.exit(1);
     }
   }).catch(err => {
     console.error('❌ E2E Execution Error:', err);

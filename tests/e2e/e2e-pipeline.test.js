@@ -23,7 +23,8 @@ const smbLeadRaw = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'smb-lead.
 const invalidLeadRaw = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'invalid-lead.json'), 'utf8'));
 const duplicateLeadRaw = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, 'duplicate-lead.json'), 'utf8'));
 
-const AUTH_HEADER = { 'Authorization': 'Bearer test-crm-sec-token-2026' };
+const TEST_TOKEN = process.env.CRM_API_KEY || '778bfb33e65827b79a583a27faac06dbba9ac694f1c58135c39d85ea5ab0b171';
+const AUTH_HEADER = { 'Authorization': `Bearer ${TEST_TOKEN}` };
 
 async function request(method, path, body = null, headers = {}) {
   const url = `${BASE_URL}${path}`;

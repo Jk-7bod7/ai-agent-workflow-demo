@@ -13,7 +13,7 @@ const { server, start, stop, getDb } = require('../../mock-crm/server');
 const { normalizeLead, validateLead } = require('../../lib/lead-processor');
 
 const TEST_PORT = 3099;
-const TEST_TOKEN = process.env.CRM_API_KEY || 'test-crm-sec-token-2026';
+const TEST_TOKEN = process.env.CRM_API_KEY || '778bfb33e65827b79a583a27faac06dbba9ac694f1c58135c39d85ea5ab0b171';
 const TEST_DB_PATH = path.join(__dirname, 'test-security.sqlite');
 
 function makeRequest(options, postData = null) {
@@ -79,6 +79,32 @@ async function runNegativeSecurityTests() {
       });
       assert.strictEqual(res.statusCode, 401, 'Invalid token must return 401');
       console.log('✓ 2. Invalid Bearer token rejected with HTTP 401');
+    }
+
+    // 2b. Blank or Empty Bearer Token -> 401 Unauthorized
+    {
+      const resBlankBearer = await makeRequest({
+        hostname: '127.0.0.1',
+        port: TEST_PORT,
+        path: '/api/v1/leads',
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer '
+        }
+      });
+      assert.strictEqual(resBlankBearer.statusCode, 401, 'Blank Bearer token must return 401');
+
+      const resBlankApiKey = await makeRequest({
+        hostname: '127.0.0.1',
+        port: TEST_PORT,
+        path: '/api/v1/leads',
+        method: 'GET',
+        headers: {
+          'X-API-Key': ''
+        }
+      });
+      assert.strictEqual(resBlankApiKey.statusCode, 401, 'Blank X-API-Key must return 401');
+      console.log('✓ 2b. Blank Bearer token and empty X-API-Key rejected with HTTP 401');
     }
 
     // 3. Unauthorized Access to Sensitive Audit Logs & DLQ -> 401

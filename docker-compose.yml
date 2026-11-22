@@ -12,9 +12,9 @@ services:
     environment:
       - PORT=3001
       - DB_PATH=/data/crm.sqlite
-      - CRM_API_KEY=${CRM_API_KEY:-test-crm-sec-token-2026}
-      - ENABLE_TEST_CHAOS=${ENABLE_TEST_CHAOS:-true}
-      - NODE_ENV=test
+      - CRM_API_KEY=${CRM_API_KEY:?CRM_API_KEY environment variable must be set and non-empty}
+      - ENABLE_TEST_CHAOS=${ENABLE_TEST_CHAOS:-false}
+      - NODE_ENV=${NODE_ENV:-production}
     ports:
       # Explicit 127.0.0.1 loopback binding prevents external network exposure
       - "127.0.0.1:${CRM_PORT:-3001}:3001"
@@ -48,8 +48,8 @@ services:
       - N8N_RUNNERS_ENABLED=true
       - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
       - NODE_FUNCTION_ALLOW_BUILTIN=crypto
-      - CRM_API_KEY=${CRM_API_KEY:-test-crm-sec-token-2026}
-      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-lead-webhook-secret-token-2026}
+      - CRM_API_KEY=${CRM_API_KEY:?CRM_API_KEY environment variable must be set and non-empty}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:?WEBHOOK_SECRET environment variable must be set and non-empty}
     volumes:
       - n8n-storage:/home/node/.n8n
       - ./workflow.json:/workflows/workflow.json:ro

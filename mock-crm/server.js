@@ -13,9 +13,10 @@ const crypto = require('node:crypto');
 const CrmDatabase = require('./database');
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
-const CRM_API_KEY = process.env.CRM_API_KEY || 'test-crm-sec-token-2026';
+function getApiKey() {
+  return (process.env.CRM_API_KEY || '').trim();
+}
 const MAX_BODY_SIZE = 256 * 1024; // 256 KB max payload size
-const ENABLE_TEST_CHAOS = process.env.ENABLE_TEST_CHAOS === 'true' || process.env.NODE_ENV === 'test';
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '';
 
 let db = null;
@@ -144,10 +145,12 @@ const server = http.createServer(async (req, res) => {
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : apiKeyHeader.trim();
 
   // Constant-time token comparison to avoid timing side-channels
+  // Fail-closed authentication: missing/blank CRM_API_KEY or missing/blank token NEVER authorizes
+  const expectedApiKey = getApiKey();
   let isAuthorized = false;
-  if (token && typeof token === 'string' && token.length === CRM_API_KEY.length) {
+  if (expectedApiKey.length > 0 && token && typeof token === 'string' && token.length > 0 && token.length === expectedApiKey.length) {
     try {
-      isAuthorized = crypto.timingSafeEqual(Buffer.from(token), Buffer.from(CRM_API_KEY));
+      isAuthorized = crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expectedApiKey));
     } catch (_) {
       isAuthorized = false;
     }

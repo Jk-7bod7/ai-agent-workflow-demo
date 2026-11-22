@@ -14,7 +14,8 @@ const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
 if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
 process.env.DB_PATH = TEST_DB;
 
-const AUTH_HEADER = { 'Authorization': 'Bearer test-crm-sec-token-2026' };
+const TEST_TOKEN = process.env.CRM_API_KEY || '778bfb33e65827b79a583a27faac06dbba9ac694f1c58135c39d85ea5ab0b171';
+const AUTH_HEADER = { 'Authorization': `Bearer ${TEST_TOKEN}` };
 
 async function request(method, path, body = null, headers = {}) {
   const url = `${BASE_URL}${path}`;

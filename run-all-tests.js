@@ -24,8 +24,18 @@ console.log('  INTELLIGENT LEAD-TO-CRM SYSTEM: AUTOMATED QA TEST RUNNER');
 console.log('================================================================\n');
 
 const results = [];
-let overallPass = true;
+let passCount = 0;
+let failCount = 0;
+let skippedCount = 0;
 const startTime = Date.now();
+
+const testEnv = {
+  ...process.env,
+  NODE_ENV: 'test',
+  ENABLE_TEST_CHAOS: 'true',
+  CRM_API_KEY: process.env.CRM_API_KEY || '778bfb33e65827b79a583a27faac06dbba9ac694f1c58135c39d85ea5ab0b171',
+  WEBHOOK_SECRET: process.env.WEBHOOK_SECRET || '7eb42b0d5cd9fca178cb26bc21fb25e97defa3867acc4c0fb362d5b8f70d8caf'
+};
 
 for (const suite of SUITES) {
   const scriptPath = path.join(__dirname, suite.script);
@@ -35,40 +45,38 @@ for (const suite of SUITES) {
   const run = spawnSync('node', [scriptPath], {
     cwd: __dirname,
     encoding: 'utf8',
-    env: { ...process.env, NODE_ENV: 'test', ENABLE_TEST_CHAOS: 'true' }
+    env: testEnv
   });
 
   const durationMs = Date.now() - suiteStart;
-  const passed = run.status === 0;
-
-  // Check if test was cleanly skipped / not run due to environment prerequisites
   const output = (run.stdout || '') + (run.stderr || '');
-  const isSkipped = output.includes('NOT_RUN') || output.includes('BLOCKED_BY_ENVIRONMENT');
-  const status = passed ? (isSkipped ? 'SKIPPED' : 'PASS') : 'FAIL';
+  const isSkipped = run.status === 2 || output.includes('NOT_RUN') || output.includes('BLOCKED_BY_ENVIRONMENT') || output.includes('Status: SKIPPED');
 
-  if (passed) {
-    console.log(`${status} (${durationMs}ms)`);
-    results.push({
-      Suite: suite.name,
-      Tier: suite.tier,
-      Status: status,
-      Duration: `${durationMs}ms`,
-      ExitCode: 0
-    });
+  let status;
+  if (isSkipped) {
+    status = 'SKIPPED';
+    skippedCount++;
+    console.log(`SKIPPED (${durationMs}ms)`);
+  } else if (run.status === 0) {
+    status = 'PASS';
+    passCount++;
+    console.log(`PASS (${durationMs}ms)`);
   } else {
+    status = 'FAIL';
+    failCount++;
     console.log(`FAIL (${durationMs}ms)`);
     console.error('\n--- STDERR / OUTPUT ---');
     console.error(run.stdout);
     console.error(run.stderr);
-    results.push({
-      Suite: suite.name,
-      Tier: suite.tier,
-      Status: 'FAIL',
-      Duration: `${durationMs}ms`,
-      ExitCode: run.status
-    });
-    overallPass = false;
   }
+
+  results.push({
+    Suite: suite.name,
+    Tier: suite.tier,
+    Status: status,
+    Duration: `${durationMs}ms`,
+    ExitCode: run.status
+  });
 }
 
 const totalDuration = ((Date.now() - startTime) / 1000).toFixed(2);
@@ -77,8 +85,20 @@ console.log('\n================================================================'
 console.log('                     QA TEST EXECUTION SUMMARY                  ');
 console.log('================================================================');
 console.table(results);
+console.log(`Total Suites: ${SUITES.length} | Passed: ${passCount} | Failed: ${failCount} | Skipped: ${skippedCount}`);
 console.log(`Total Execution Time: ${totalDuration}s`);
-console.log(`Overall Result: ${overallPass ? 'ALL EXECUTED SUITES PASSED' : 'SOME TESTS FAILED'}`);
+
+let finalExitCode = 0;
+if (failCount > 0) {
+  console.log(`Overall Result: TEST SUITE FAILED (${failCount} failure(s))`);
+  finalExitCode = 1;
+} else if (skippedCount > 0) {
+  console.log(`Overall Result: RELEASE CRITERIA NOT MET (${skippedCount} mandatory suite(s) SKIPPED/BLOCKED)`);
+  finalExitCode = 1;
+} else {
+  console.log('Overall Result: ALL MANDATORY SUITES PASSED (100% VERIFIED)');
+  finalExitCode = 0;
+}
 console.log('================================================================\n');
 
-process.exit(overallPass ? 0 : 1);
+process.exit(finalExitCode);
