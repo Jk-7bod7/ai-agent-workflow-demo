@@ -20,7 +20,7 @@
 | **P2 Logic: SLA Escalation Idempotency** | Hourly SLA polling must not create repeated alert storms. | **PASSED** | Verified `ALREADY_ESCALATED` status on subsequent polling runs. |
 | **Adversarial Regression Suite** | Malformed types, NaN budgets, invalid dates rejected. | **PASSED** | All 10 test cases in `negative-security.test.js` pass cleanly. |
 | **Static Verification** | n8n workflow JSON graph schema integrity. | **PASSED** | `validate-workflow.js` validated 18 nodes and connection graph. |
-| **License Compliance** | Permissive open-source license file present in root. | **PASSED** | `LICENSE` (MIT License) created and attributed to Omar Owais. |
+| **License Compliance** | Permissive open-source license file present in root. | **PASSED** | `LICENSE` (MIT License) created and attributed to Jk-7bod7. |
 | **Real Live n8n E2E** | Live execution across Docker Compose stack. | **PASSED** | Verified 7/7 live HTTP scenarios in real n8n container (`real-n8n-http-e2e.js`). |
 
 ---
