@@ -5,7 +5,7 @@
 [![Zero Dependencies](https://img.shields.io/badge/External%20Deps-Zero-success.svg)](#-architecture-overview)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A production-quality, resilient B2B Lead Ingestion, Deduplication, Dynamic Qualification, and CRM Routing system engineered with **n8n**, a high-performance **REST CRM microservice**, and persistent **SQLite/PostgreSQL** storage.
+A tested reference architecture for B2B Lead Ingestion, Deduplication, Dynamic Qualification, and CRM Routing engineered with **n8n**, a high-performance **REST CRM microservice**, and persistent **SQLite (WAL mode)** storage.
 
 ---
 
@@ -16,13 +16,13 @@ In modern B2B sales operations, lead conversion velocity is directly dictated by
 This system provides an **autonomous, end-to-end integration architecture** that:
 1. **Ingests leads via Webhook** from landing pages, contact forms, or partner portals.
 2. **Enforces data integrity**: Validates RFC 5322 email syntax, mandatory company fields, non-negative budgets, and catches spam bot heuristics.
-3. **Guarantees Idempotency**: Employs SHA-256 cryptographic fingerprinting to detect duplicate submissions and prevent duplicate CRM records.
+3. **Enforces Idempotency**: Employs SHA-256 cryptographic fingerprinting (with fail-closed Node.js crypto assertion) to detect duplicate submissions and prevent duplicate CRM records.
 4. **Calculates Priority & SLAs Dynamically**:
-   - **P1 (Enterprise Tier)**: Budget ≥ \$50k or 500+ org size ➔ **1-Hour SLA** ➔ Direct Executive Slack Alert & Senior VP routing.
+   - **P1 (Enterprise Tier)**: Budget ≥ \$50k or 500+ org size ➔ **1-Hour SLA** ➔ Local Executive Alert record in CRM registry.
    - **P2 (Mid-Market Tier)**: Budget ≥ \$10k or 50-250 org size ➔ **4-Hour SLA** ➔ Commercial SDR routing.
    - **P3 (Standard SMB)**: Budget < \$10k ➔ **24-Hour SLA** ➔ Marketing nurture automation.
 5. **Enforces Fault Tolerance & Recovery**: Implements bounded exponential backoff retries against transient API outages and routes unprocessable leads to a Dead Letter Queue (DLQ).
-6. **Maintains Tamper-Evident Audit Trails**: Logs every lifecycle transition with timestamped audit entries.
+6. **Maintains Tamper-Evident Audit Trails**: Logs every lifecycle transition with timestamped audit entries in SQLite (WAL mode).
 
 ---
 
@@ -92,30 +92,34 @@ The system includes an automated test harness covering the complete lifecycle:
   INTELLIGENT LEAD-TO-CRM SYSTEM: AUTOMATED QA TEST RUNNER
 ================================================================
 
-Executing: Workflow Graph & Schema Validation... PASS (60ms)
-Executing: Unit: Data Validation & Normalization... PASS (63ms)
-Executing: Unit: Priority Scoring & SLA Calculation... PASS (62ms)
-Executing: Integration: Mock CRM REST API & Idempotency... PASS (179ms)
-Executing: Integration: Chaos & Bounded Retry Recovery... PASS (482ms)
-Executing: E2E: Full Pipeline & Persistence Across Restarts... PASS (328ms)
-Executing: Security: Zero-Secrets & Credentials Audit... PASS (66ms)
+Executing [Schema / Unit]: 1. Workflow Graph & Schema Validation... PASS (61ms)
+Executing [Unit]: 2. Unit: Data Validation & Normalization... PASS (68ms)
+Executing [Unit]: 3. Unit: Priority Scoring & SLA Calculation... PASS (67ms)
+Executing [Mock Integration]: 4. Integration: Mock CRM REST API & Idempotency... PASS (191ms)
+Executing [Mock Integration]: 5. Integration: Chaos & Bounded Retry Recovery... PASS (485ms)
+Executing [Adversarial Security]: 6. Security: Negative & Adversarial Attack Surface... PASS (143ms)
+Executing [Simulated E2E]: 7. E2E: Full Pipeline & Persistence Across Restarts... PASS (325ms)
+Executing [Static Security Audit]: 8. Security: Zero-Secrets & Credentials Audit... PASS (79ms)
+Executing [Real Live E2E (Docker)]: 9. E2E: Genuine Real Docker + n8n Live HTTP... PASS (73028ms)
 
 ================================================================
                      QA TEST EXECUTION SUMMARY                  
 ================================================================
-┌─────────┬────────────────────────────────────────────────────┬────────┬──────────┬──────────┐
-│ (index) │ Suite                                              │ Status │ Duration │ ExitCode │
-├─────────┼────────────────────────────────────────────────────┼────────┼──────────┼──────────┤
-│ 0       │ 'Workflow Graph & Schema Validation'               │ 'PASS' │ '60ms'   │ 0        │
-│ 1       │ 'Unit: Data Validation & Normalization'            │ 'PASS' │ '63ms'   │ 0        │
-│ 2       │ 'Unit: Priority Scoring & SLA Calculation'         │ 'PASS' │ '62ms'   │ 0        │
-│ 3       │ 'Integration: Mock CRM REST API & Idempotency'     │ 'PASS' │ '179ms'  │ 0        │
-│ 4       │ 'Integration: Chaos & Bounded Retry Recovery'      │ 'PASS' │ '482ms'  │ 0        │
-│ 5       │ 'E2E: Full Pipeline & Persistence Across Restarts' │ 'PASS' │ '328ms'  │ 0        │
-│ 6       │ 'Security: Zero-Secrets & Credentials Audit'       │ 'PASS' │ '66ms'   │ 0        │
-└─────────┴────────────────────────────────────────────────────┴────────┴──────────┴──────────┘
-Total Execution Time: 1.24s
-Overall Result: ALL TESTS PASSED (100% GREEN)
+┌─────────┬───────────────────────────────────────────────────────┬──────────────────────────┬────────┬───────────┬──────────┐
+│ (index) │ Suite                                                 │ Tier                     │ Status │ Duration  │ ExitCode │
+├─────────┼───────────────────────────────────────────────────────┼──────────────────────────┼────────┼───────────┼──────────┤
+│ 0       │ '1. Workflow Graph & Schema Validation'               │ 'Schema / Unit'          │ 'PASS' │ '61ms'    │ 0        │
+│ 1       │ '2. Unit: Data Validation & Normalization'            │ 'Unit'                   │ 'PASS' │ '68ms'    │ 0        │
+│ 2       │ '3. Unit: Priority Scoring & SLA Calculation'         │ 'Unit'                   │ 'PASS' │ '67ms'    │ 0        │
+│ 3       │ '4. Integration: Mock CRM REST API & Idempotency'     │ 'Mock Integration'       │ 'PASS' │ '191ms'   │ 0        │
+│ 4       │ '5. Integration: Chaos & Bounded Retry Recovery'      │ 'Mock Integration'       │ 'PASS' │ '485ms'   │ 0        │
+│ 5       │ '6. Security: Negative & Adversarial Attack Surface'  │ 'Adversarial Security'   │ 'PASS' │ '143ms'   │ 0        │
+│ 6       │ '7. E2E: Full Pipeline & Persistence Across Restarts' │ 'Simulated E2E'          │ 'PASS' │ '325ms'   │ 0        │
+│ 7       │ '8. Security: Zero-Secrets & Credentials Audit'       │ 'Static Security Audit'  │ 'PASS' │ '79ms'    │ 0        │
+│ 8       │ '9. E2E: Genuine Real Docker + n8n Live HTTP'         │ 'Real Live E2E (Docker)' │ 'PASS' │ '73028ms' │ 0        │
+└─────────┴───────────────────────────────────────────────────────┴──────────────────────────┴────────┴───────────┴──────────┘
+Total Execution Time: 74.45s
+Overall Result: ALL EXECUTED SUITES PASSED (100% GREEN)
 ================================================================
 ```
 
@@ -129,7 +133,7 @@ Overall Result: ALL TESTS PASSED (100% GREEN)
 git clone https://github.com/Jk-7bod7/ai-agent-workflow-demo.git
 cd ai-agent-workflow-demo
 
-# Run all 7 test suites
+# Run all 9 test suites (Suites 1-8 run in ~1.5s; Suite 9 executes against Docker if active)
 node run-all-tests.js
 ```
 
