@@ -28,6 +28,10 @@ This system provides an **autonomous, end-to-end integration architecture** that
 
 ## 🏗️ Architecture Overview
 
+*Conceptual architecture visualization:*
+
+![System Architecture (Conceptual Design Flow)](docs/assets/architecture-diagram.svg)
+
 ```mermaid
 flowchart LR
     A["Inbound Webhook<br/>(POST /webhook/leads)"] --> B["Normalize & Fingerprint<br/>(SHA-256 Hash)"]
@@ -84,6 +88,10 @@ github-workflow-demo/
 ---
 
 ## 🧪 Test Results & Empirical Evidence
+
+*QA Results Visualization — Based on Recorded Test Output:*
+
+![QA Results Visualization — Based on Recorded Test Output](docs/assets/qa-test-results.svg)
 
 The system includes an automated test harness covering the complete lifecycle:
 
